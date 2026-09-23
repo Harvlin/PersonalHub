@@ -13,7 +13,7 @@ function readCookie(name: string) {
 async function request(path: string, options: RequestInit = {}) {
   const method = options.method?.toUpperCase() ?? "GET";
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+  if (options.body !== undefined) headers.set("Content-Type", "application/json");
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     const token = readCookie("XSRF-TOKEN");
     if (token) headers.set("X-XSRF-TOKEN", decodeURIComponent(token));
