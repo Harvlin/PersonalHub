@@ -402,7 +402,7 @@ type Store = State & {
 
 const StoreContext = createContext<Store | null>(null);
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
 const readCookie = (name: string) => document.cookie.split("; ").find((item) => item.startsWith(`${name}=`))?.split("=")[1] ?? "";
 
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
