@@ -1,6 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+// The SSR build emits JavaScript without a declaration file.
+// @ts-expect-error The generated server module has no TypeScript declarations.
 import server from "../dist/server/server.js";
+
+const appServer = server as {
+  fetch(request: Request, environment: Record<string, unknown>, context: Record<string, unknown>): Promise<Response>;
+};
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   const protocol = request.headers["x-forwarded-proto"] ?? "https";
@@ -24,7 +30,7 @@ export default async function handler(request: IncomingMessage, response: Server
     body: hasBody ? (request as unknown as BodyInit) : undefined,
     duplex: hasBody ? "half" : undefined,
   } as RequestInit & { duplex?: "half" });
-  const webResponse = await server.fetch(webRequest, {}, {});
+  const webResponse = await appServer.fetch(webRequest, {}, {});
 
   response.statusCode = webResponse.status;
   webResponse.headers.forEach((value, name) => response.setHeader(name, value));
