@@ -451,8 +451,7 @@ function Palette({ onClose }: { onClose: () => void }) {
 }
 
 function LoginScreen() {
-  const { login, register } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -466,22 +465,20 @@ function LoginScreen() {
           event.preventDefault();
           setPending(true);
           setError("");
-          const action = mode === "login" ? login(username, password) : register(username, password);
-          void action.catch((reason: unknown) => setError(reason instanceof Error ? reason.message : mode === "login" ? "Unable to sign in" : "Unable to create account")).finally(() => setPending(false));
+          login(username, password)
+            .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to sign in"))
+            .finally(() => setPending(false));
         }}
       >
         <div className="micro-label">Personal Hub / Private Workspace</div>
-        <h1 className="mt-3 text-xl font-semibold">{mode === "login" ? "Sign in" : "Create your account"}</h1>
+        <h1 className="mt-3 text-xl font-semibold">Sign in</h1>
         <p className="mono mt-2 text-[11px] text-ink-muted">Your session is protected by an encrypted server-side cookie.</p>
         <div className="mt-5 space-y-3">
           <Field label="Username"><Input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" /></Field>
-          <Field label="Password"><Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} /></Field>
+          <Field label="Password"><Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></Field>
         </div>
         {error ? <p className="mono mt-3 text-[11px] text-signal">{error}</p> : null}
-        <Button className="mt-5 w-full" variant="solid" type="submit" disabled={pending}>{pending ? "Working..." : mode === "login" ? "Sign in" : "Create account"}</Button>
-        <button type="button" className="mono mt-4 w-full text-[11px] text-ink-muted underline underline-offset-4 hover:text-ink" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
-          {mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+        <Button className="mt-5 w-full" variant="solid" type="submit" disabled={pending}>{pending ? "Working..." : "Sign in"}</Button>
       </form>
     </div>
   );

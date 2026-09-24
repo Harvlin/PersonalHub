@@ -39,7 +39,7 @@ function Dashboard() {
   const [range, setRange] = useState<"today" | "week">("today");
   const [filterOpen, setFilterOpen] = useState(false);
   const [hideDone, setHideDone] = useState(false);
-  const [drawerTask, setDrawerTask] = useState<Task | null>(null);
+  const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [logFor, setLogFor] = useState<string | null>(null);
 
   const inRange = (due: string | null) => {
@@ -108,7 +108,7 @@ function Dashboard() {
                   <li key={t.id} className="flex items-center gap-2.5">
                     <StatusGlyph status={t.status} />
                     <button
-                      onClick={() => setDrawerTask(t)}
+                      onClick={() => setDrawerTaskId(t.id)}
                       className="focus-ink truncate text-left text-[13px] underline decoration-border underline-offset-2 hover:decoration-ink"
                     >
                       {t.title}
@@ -209,7 +209,7 @@ function Dashboard() {
                         </td>
                       </tr>
                       {rows.map((t) => (
-                        <TaskRow key={t.id} task={t} showProject onOpen={setDrawerTask} />
+                        <TaskRow key={t.id} task={t} showProject onOpen={(t) => setDrawerTaskId(t.id)} />
                       ))}
                     </>
                   );
@@ -277,7 +277,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <TaskDrawer task={drawerTask} onClose={() => setDrawerTask(null)} />
+      <TaskDrawer task={store.tasks.find((t) => t.id === drawerTaskId) ?? null} onClose={() => setDrawerTaskId(null)} />
 
       <Modal open={filterOpen} onClose={() => setFilterOpen(false)} title="Filter tasks" width="max-w-sm">
         <label className="flex items-center gap-2 text-[13px]">

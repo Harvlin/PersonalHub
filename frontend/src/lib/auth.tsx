@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
+const API_URL = import.meta.env["VITE_API_URL"] ?? "";
 
 type AuthUser = { username: string | null; authenticated: boolean };
 type AuthContextValue = AuthUser & { loading: boolean; login: (username: string, password: string) => Promise<void>; register: (username: string, password: string) => Promise<void>; logout: () => Promise<void> };

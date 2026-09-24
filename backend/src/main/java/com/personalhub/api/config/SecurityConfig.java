@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .maximumSessions(2))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/csrf", "/api/auth/me").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/csrf", "/api/auth/me").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(exceptions -> exceptions

@@ -13,6 +13,8 @@ public interface ContactService {
     ContactDto findById(UUID id);
     ContactDto create(CreateContactRequest request);
     ContactDto update(UUID id, RequestModels.ContactPatch request);
+    void delete(UUID id);
     List<InteractionDto> interactions(UUID id);
     InteractionDto addInteraction(UUID id, CreateInteractionRequest request);
+    void deleteInteraction(UUID contactId, UUID interactionId);
 }

@@ -14,11 +14,8 @@ export const Route = createFileRoute("/")({
 
 const capabilities = [
   ["01", "Unified Dashboard", "See only what needs attention today.", "Needs Attention / Today / Progressive Disclosure"],
-  ["02", "Inbox", "Capture ideas instantly without deciding where they belong.", "Quick Capture / Zero Friction"],
-  ["03", "Project Manager", "Break complex work into milestones, dependencies, and decisions.", "Milestones / Dependencies / Markdown"],
-  ["04", "Personal CRM", "Turn relationships into actionable workflows, not static records.", "Interactions / Linked Tasks / Ping System"],
-  ["05", "Calendar", "Give scheduled work a real place in time.", "7-Day View / Drag & Drop"],
-  ["06", "Daily Digest", "Receive one consolidated view of what matters.", "Email / Daily Summary"],
+  ["02", "Project Manager", "Break complex work into milestones, dependencies, and decisions.", "Milestones / Dependencies / Markdown"],
+  ["03", "Personal CRM", "Turn relationships into actionable workflows, not static records.", "Interactions / Linked Tasks / Ping System"],
 ] as const;
 
 function LandingPage() {
@@ -56,10 +53,10 @@ function LandingPage() {
 
         <section className="landing-section mobile-section"><div><p className="eyebrow">BUILT FOR THE POCKET <span>/ 07</span></p><h2>Your workspace<br /><em>fits in your pocket.</em></h2><p>Capture a thought or check today&apos;s priorities without opening a laptop.</p></div><div className="phone"><div className="phone-speaker" /><div className="phone-screen"><div className="phone-top"><span>9:41</span><span>● ● ●</span></div><p className="eyebrow">DASHBOARD</p><h3>Good morning.</h3><div className="phone-focus"><span>NEEDS ATTENTION</span><b>2 items</b><small>Configure OAuth callback</small><small>Ping Alex Morgan</small></div><p className="eyebrow">TODAY</p><div className="phone-line" /><div className="phone-line short" /></div><div className="phone-nav"><span>⌂<small>Dashboard</small></span><span>□<small>Inbox</small></span><b><Plus size={19} /></b><span>◎<small>Contacts</small></span><span>•••<small>More</small></span></div></div></section>
 
-        <section className="trust-section"><div className="trust-inner"><p className="eyebrow">BUILT FOR ONE <span>/ 08</span></p><h2>Private by design.<br /><em>Simple by architecture.</em></h2><div className="architecture"><span>PERSONAL HUB</span><i>↓</i><span>Next.js</span><i>↓</i><span>Prisma</span><i>↓</i><span>PostgreSQL</span><i>↓</i><span>Vercel</span></div><p className="trust-note">A focused single-user architecture without unnecessary multi-tenant complexity. Session-based authentication, automated backups, and environment-first configuration.</p></div></section>
+        <section className="trust-section"><div className="trust-inner"><p className="eyebrow">BUILT FOR ONE <span>/ 08</span></p><h2>Private by design.<br /><em>Simple by architecture.</em></h2><div className="architecture"><span>PERSONAL HUB</span><i>↓</i><span>TanStack Start</span><i>↓</i><span>Spring Boot</span><i>↓</i><span>PostgreSQL</span><i>↓</i><span>Docker</span></div><p className="trust-note">A focused single-user architecture without unnecessary multi-tenant complexity. Session-based authentication, automated backups, and environment-first configuration.</p></div></section>
       </main>
 
-      <footer className="landing-footer"><div className="footer-cta"><p className="eyebrow">MAKE ROOM <span>/ 09</span></p><h2>Make space for<br /><em>the work that matters.</em></h2><p>Not more productivity. Less friction.</p><Link to="/dashboard" className="primary-action">Open Personal Hub <ArrowUpRight size={16} /></Link></div><div className="footer-bottom"><span className="landing-wordmark"><span className="wordmark-mark">PH</span> Personal <em>Hub</em></span><span className="mono-label">PERSONAL HUB / 2026</span><span className="mono-label">NEXT.JS × PRISMA × POSTGRESQL</span></div></footer>
+      <footer className="landing-footer"><div className="footer-cta"><p className="eyebrow">MAKE ROOM <span>/ 09</span></p><h2>Make space for<br /><em>the work that matters.</em></h2><p>Not more productivity. Less friction.</p><Link to="/dashboard" className="primary-action">Open Personal Hub <ArrowUpRight size={16} /></Link></div><div className="footer-bottom"><span className="landing-wordmark"><span className="wordmark-mark">PH</span> Personal <em>Hub</em></span><span className="mono-label">PERSONAL HUB / 2026</span><span className="mono-label">TANSTACK START × SPRING BOOT × POSTGRESQL</span></div></footer>
     </div>
   );
 }

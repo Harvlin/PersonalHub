@@ -28,6 +28,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final MilestoneMapper milestoneMapper;
     private final ResourceMapper resourceMapper;
     private final AttachmentMapper attachmentMapper;
+    private final TaskRepository tasks;
 
     @Override @Transactional(readOnly = true)
     public List<ProjectDto> findAll() { return projects.findAllByOrderByUpdatedAtDesc().stream().map(projectMapper::toDto).toList(); }
@@ -38,7 +39,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public ProjectDto update(UUID id, RequestModels.ProjectPatch request) { Project entity = project(id); if (request.name() != null) entity.setName(request.name()); if (request.description() != null) entity.setDescription(request.description()); if (request.status() != null) entity.setStatus(request.status()); if (request.archived() != null) entity.setArchived(request.archived()); entity.setUpdatedAt(Instant.now()); return projectMapper.toDto(projects.save(entity)); }
     @Override
-    public void delete(UUID id) { project(id); milestones.deleteAll(milestones.findByProjectIdOrderByNameAsc(id)); resources.deleteAll(resources.findByProjectIdOrderByAddedAtDesc(id)); attachments.deleteAll(attachments.findByProjectIdOrderByUploadedAtDesc(id)); projects.deleteById(id); }
+    public void delete(UUID id) { project(id); tasks.deleteAll(tasks.findByProjectIdOrderByCreatedAtDesc(id)); milestones.deleteAll(milestones.findByProjectIdOrderByNameAsc(id)); resources.deleteAll(resources.findByProjectIdOrderByAddedAtDesc(id)); attachments.deleteAll(attachments.findByProjectIdOrderByUploadedAtDesc(id)); projects.deleteById(id); }
     @Override @Transactional(readOnly = true)
     public List<MilestoneDto> milestones(UUID projectId) { project(projectId); return milestones.findByProjectIdOrderByNameAsc(projectId).stream().map(milestoneMapper::toDto).toList(); }
     @Override
@@ -53,5 +54,11 @@ public class ProjectServiceImpl implements ProjectService {
     public List<AttachmentDto> attachments(UUID projectId) { project(projectId); return attachments.findByProjectIdOrderByUploadedAtDesc(projectId).stream().map(attachmentMapper::toDto).toList(); }
     @Override
     public AttachmentDto addAttachment(UUID projectId, CreateAttachmentRequest request) { Project project = project(projectId); Attachment entity = new Attachment(projectId, request.name(), request.size()); entity.setUploadedAt(Instant.now()); project.setUpdatedAt(Instant.now()); projects.save(project); return attachmentMapper.toDto(attachments.save(entity)); }
+    @Override
+    public void deleteMilestone(UUID projectId, UUID milestoneId) { project(projectId); Milestone entity = milestones.findById(milestoneId).filter(item -> item.getProjectId().equals(projectId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Milestone not found")); milestones.delete(entity); }
+    @Override
+    public void deleteResource(UUID projectId, UUID resourceId) { project(projectId); Resource entity = resources.findById(resourceId).filter(item -> item.getProjectId().equals(projectId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found")); resources.delete(entity); }
+    @Override
+    public void deleteAttachment(UUID projectId, UUID attachmentId) { project(projectId); Attachment entity = attachments.findById(attachmentId).filter(item -> item.getProjectId().equals(projectId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Attachment not found")); attachments.delete(entity); }
     private Project project(UUID id) { return projects.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Project not found")); }
 }

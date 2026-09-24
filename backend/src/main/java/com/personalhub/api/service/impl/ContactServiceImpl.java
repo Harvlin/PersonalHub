@@ -34,10 +34,14 @@ public class ContactServiceImpl implements ContactService {
     @Override
     public ContactDto create(CreateContactRequest request) { Contact entity = contactMapper.toEntity(request); if (request.pingIntervalDays() == null) entity.setPingIntervalDays(21); entity.setLastContact(LocalDate.now()); return contactMapper.toDto(contacts.save(entity)); }
     @Override
-    public ContactDto update(UUID id, RequestModels.ContactPatch request) { Contact entity = contact(id); if (request.name() != null) entity.setName(request.name()); if (request.originContext() != null) entity.setOriginContext(request.originContext()); if (request.tags() != null) entity.setTags(request.tags()); if (request.pingIntervalDays() != null) entity.setPingIntervalDays(request.pingIntervalDays()); if (request.lastContact() != null) entity.setLastContact(request.lastContact()); return contactMapper.toDto(contacts.save(entity)); }
+    public ContactDto update(UUID id, RequestModels.ContactPatch request) { Contact entity = contact(id); if (request.name() != null) entity.setName(request.name()); if (request.originContext() != null) entity.setOriginContext(request.originContext()); if (request.tags() != null) entity.setTags(request.tags()); if (request.pingIntervalDays() != null) entity.setPingIntervalDays(request.pingIntervalDays()); if (request.lastContact() != null) entity.setLastContact(request.lastContact()); if (request.notes() != null) entity.setNotes(request.notes()); return contactMapper.toDto(contacts.save(entity)); }
+    @Override
+    public void delete(UUID id) { contact(id); interactions.deleteAll(interactions.findByContactIdOrderByDateDesc(id)); contacts.deleteById(id); }
     @Override @Transactional(readOnly = true)
     public List<InteractionDto> interactions(UUID id) { contact(id); return interactions.findByContactIdOrderByDateDesc(id).stream().map(interactionMapper::toDto).toList(); }
     @Override
     public InteractionDto addInteraction(UUID id, CreateInteractionRequest request) { Contact contact = contact(id); Interaction entity = new Interaction(id, request.date(), request.note()); contact.setLastContact(request.date()); contacts.save(contact); return interactionMapper.toDto(interactions.save(entity)); }
+    @Override
+    public void deleteInteraction(UUID contactId, UUID interactionId) { contact(contactId); Interaction entity = interactions.findById(interactionId).filter(i -> i.getContactId().equals(contactId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Interaction not found")); interactions.delete(entity); }
     private Contact contact(UUID id) { return contacts.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Contact not found")); }
 }

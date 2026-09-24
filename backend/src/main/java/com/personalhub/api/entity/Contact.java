@@ -31,6 +31,7 @@ public class Contact {
     @Column(name = "tag", nullable = false, length = 80) private List<String> tags = new ArrayList<>();
     @Min(1) @Column(nullable = false) private int pingIntervalDays = 21;
     private LocalDate lastContact;
+    @Size(max = 20000) @Column(columnDefinition = "text") private String notes;
 
     public Contact(String name, String originContext, List<String> tags, int pingIntervalDays) {
         this.name = name; this.originContext = originContext; this.tags = tags == null ? new ArrayList<>() : new ArrayList<>(tags); this.pingIntervalDays = pingIntervalDays;

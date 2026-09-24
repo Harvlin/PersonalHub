@@ -71,6 +71,7 @@ export type Contact = {
   tags: string[];
   ping_interval_days: number;
   last_contact: string;
+  notes?: string | undefined;
 };
 
 const STATUSES: Status[] = ["todo", "in_progress", "waiting", "blocked", "done"];
@@ -409,8 +410,8 @@ type Store = State & {
 
 const StoreContext = createContext<Store | null>(null);
 
-const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
-const wireStatus = (status: Status | undefined) => status?.toUpperCase();
+const API_URL = import.meta.env["VITE_API_URL"] ?? "";
+const wireStatus = (status: Status | undefined) => status ? status.toUpperCase() : undefined;
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = options.method?.toUpperCase() ?? "GET";
   const headers = new Headers(options.headers);
@@ -431,7 +432,7 @@ type ApiWorkspace = {
   projects: Array<{ id: string; name: string; description?: string; status: Status; archived: boolean; createdAt: string; updatedAt: string }>;
   milestones: Array<{ id: string; projectId: string; name: string; status: Status }>;
   tasks: Array<{ id: string; title: string; description?: string; status: Status; blockedReason?: string; projectId: string; milestoneId: string; due: string | null; createdAt: string; contactId?: string }>;
-  contacts: Array<{ id: string; name: string; originContext?: string; tags: string[]; pingIntervalDays: number; lastContact?: string }>;
+  contacts: Array<{ id: string; name: string; originContext?: string; tags: string[]; pingIntervalDays: number; lastContact?: string; notes?: string }>;
   interactions: Array<{ id: string; contactId: string; date: string; note: string }>;
   resources: Array<{ id: string; projectId: string; label: string; url: string; addedAt: string }>;
   attachments: Array<{ id: string; projectId: string; name: string; size: string; uploadedAt: string }>;
@@ -442,7 +443,7 @@ const mapWorkspace = (data: ApiWorkspace): State => ({
   projects: (data.projects ?? []).filter(Boolean).map((p) => ({ id: asText(p.id, uid("project")), name: asText(p.name, "Untitled project"), description: asText(p.description), status: asStatus(p.status), is_archived: Boolean(p.archived), created: asDate(p.createdAt), updated: asDate(p.updatedAt) })),
   milestones: (data.milestones ?? []).filter(Boolean).map((m) => ({ id: asText(m.id, uid("milestone")), project_id: asText(m.projectId), name: asText(m.name, "Untitled milestone"), status: asStatus(m.status) })),
   tasks: (data.tasks ?? []).filter(Boolean).map((t) => ({ id: asText(t.id, uid("task")), title: asText(t.title, "Untitled task"), description: asText(t.description), status: asStatus(t.status), blocked_reason: asText(t.blockedReason) || undefined, project_id: asText(t.projectId), milestone_id: asText(t.milestoneId), due: typeof t.due === "string" ? t.due : null, created: asDate(t.createdAt), contact_id: asText(t.contactId) || undefined })),
-  contacts: (data.contacts ?? []).filter(Boolean).map((c) => ({ id: asText(c.id, uid("contact")), name: asText(c.name, "Unnamed contact"), origin_context: asText(c.originContext), tags: Array.isArray(c.tags) ? c.tags.filter((tag): tag is string => typeof tag === "string") : [], ping_interval_days: Number.isFinite(c.pingIntervalDays) ? c.pingIntervalDays : 21, last_contact: asDate(c.lastContact) })),
+  contacts: (data.contacts ?? []).filter(Boolean).map((c) => ({ id: asText(c.id, uid("contact")), name: asText(c.name, "Unnamed contact"), origin_context: asText(c.originContext), tags: Array.isArray(c.tags) ? c.tags.filter((tag): tag is string => typeof tag === "string") : [], ping_interval_days: Number.isFinite(c.pingIntervalDays) ? c.pingIntervalDays : 21, last_contact: asDate(c.lastContact), notes: asText(c.notes) || undefined })),
   interactions: (data.interactions ?? []).filter(Boolean).map((i) => ({ id: asText(i.id, uid("interaction")), contact_id: asText(i.contactId), date: asDate(i.date), note: asText(i.note) })),
   resources: (data.resources ?? []).filter(Boolean).map((r) => ({ id: asText(r.id, uid("resource")), project_id: asText(r.projectId), label: asText(r.label, "Untitled resource"), url: asText(r.url), added: asDate(r.addedAt) })),
   attachments: (data.attachments ?? []).filter(Boolean).map((a) => ({ id: asText(a.id, uid("attachment")), project_id: asText(a.projectId), name: asText(a.name, "Unnamed attachment"), size: asText(a.size), uploaded: asDate(a.uploadedAt) })),
@@ -467,7 +468,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateTask: Store["updateTask"] = useCallback(async (id, patch) => { await apiRequest(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ title: patch.title, description: patch.description, status: wireStatus(patch.status), blockedReason: patch.blocked_reason, projectId: patch.project_id, milestoneId: patch.milestone_id, due: patch.due, contactId: patch.contact_id }) }); await reload(); }, [reload]);
   const deleteTask: Store["deleteTask"] = useCallback(async (id) => { await apiRequest(`/api/tasks/${id}`, { method: "DELETE" }); setState((s) => ({ ...s, tasks: s.tasks.filter((task) => task.id !== id) })); }, []);
   const addContact: Store["addContact"] = useCallback(async (input) => { const response = await apiRequest<ApiWorkspace["contacts"][number]>("/api/contacts", { method: "POST", body: JSON.stringify({ name: input.name, originContext: input.origin_context, tags: input.tags, pingIntervalDays: input.ping_interval_days }) }); const contact = { id: response.id, name: response.name, origin_context: response.originContext ?? "", tags: response.tags, ping_interval_days: response.pingIntervalDays, last_contact: response.lastContact ?? TODAY }; setState((s) => ({ ...s, contacts: [contact, ...s.contacts] })); return contact; }, []);
-  const updateContact: Store["updateContact"] = useCallback(async (id, patch) => { await apiRequest(`/api/contacts/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, originContext: patch.origin_context, tags: patch.tags, pingIntervalDays: patch.ping_interval_days, lastContact: patch.last_contact }) }); await reload(); }, [reload]);
+  const updateContact: Store["updateContact"] = useCallback(async (id, patch) => { await apiRequest(`/api/contacts/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, originContext: patch.origin_context, tags: patch.tags, pingIntervalDays: patch.ping_interval_days, lastContact: patch.last_contact, notes: patch.notes }) }); await reload(); }, [reload]);
   const logInteraction: Store["logInteraction"] = useCallback(async (contactId, note, date) => { await apiRequest(`/api/contacts/${contactId}/interactions`, { method: "POST", body: JSON.stringify({ note, date }) }); await reload(); }, [reload]);
   const addResource: Store["addResource"] = useCallback(async (projectId, label, url) => { await apiRequest(`/api/projects/${projectId}/resources`, { method: "POST", body: JSON.stringify({ label, url }) }); await reload(); }, [reload]);
   const addAttachment: Store["addAttachment"] = useCallback(async (projectId, name, size) => { await apiRequest(`/api/projects/${projectId}/attachments`, { method: "POST", body: JSON.stringify({ name, size }) }); await reload(); }, [reload]);

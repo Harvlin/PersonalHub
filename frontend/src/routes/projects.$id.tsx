@@ -46,7 +46,7 @@ function ProjectDetail() {
   const [resLabel, setResLabel] = useState("");
   const [resUrl, setResUrl] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false);
-  const [drawerTask, setDrawerTask] = useState<Task | null>(null);
+  const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   if (!project) {
@@ -184,7 +184,7 @@ function ProjectDetail() {
                       </thead>
                       <tbody>
                         {tasks.map((t) => (
-                          <TaskRow key={t.id} task={t} onOpen={setDrawerTask} />
+                          <TaskRow key={t.id} task={t} onOpen={(t) => setDrawerTaskId(t.id)} />
                         ))}
                       </tbody>
                     </table>
@@ -340,7 +340,7 @@ function ProjectDetail() {
         </div>
       </div>
 
-      <TaskDrawer task={drawerTask} onClose={() => setDrawerTask(null)} />
+      <TaskDrawer task={store.tasks.find((t) => t.id === drawerTaskId) ?? null} onClose={() => setDrawerTaskId(null)} />
 
       <Modal
         open={confirmArchive}

@@ -21,8 +21,11 @@ public interface ProjectService {
     List<MilestoneDto> milestones(UUID projectId);
     MilestoneDto addMilestone(UUID projectId, CreateMilestoneRequest request);
     MilestoneDto updateMilestone(UUID projectId, UUID milestoneId, RequestModels.MilestonePatch request);
+    void deleteMilestone(UUID projectId, UUID milestoneId);
     List<ResourceDto> resources(UUID projectId);
     ResourceDto addResource(UUID projectId, CreateResourceRequest request);
+    void deleteResource(UUID projectId, UUID resourceId);
     List<AttachmentDto> attachments(UUID projectId);
     AttachmentDto addAttachment(UUID projectId, CreateAttachmentRequest request);
+    void deleteAttachment(UUID projectId, UUID attachmentId);
 }

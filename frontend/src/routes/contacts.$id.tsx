@@ -33,7 +33,6 @@ function ContactDetail() {
   const [logging, setLogging] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
-  const [notes, setNotes] = useState<Record<string, string>>({});
 
   if (!contact) {
     return (
@@ -52,7 +51,7 @@ function ContactDetail() {
   const interactions = store.interactions
     .filter((i) => i.contact_id === contact.id)
     .sort((a, b) => (a.date < b.date ? 1 : -1));
-  const noteText = notes[contact.id + NOTES_KEY] ?? "";
+  const noteText = contact.notes ?? "";
 
   return (
     <>
@@ -137,7 +136,7 @@ function ContactDetail() {
                   <Button
                     variant="solid"
                     onClick={() => {
-                      setNotes((n) => ({ ...n, [contact.id + NOTES_KEY]: notesDraft }));
+                      store.updateContact(contact.id, { notes: notesDraft });
                       setEditingNotes(false);
                     }}
                   >
