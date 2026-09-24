@@ -6,6 +6,7 @@ import {
   ageInDays,
   nextStatus,
   statusLabel,
+  type Status,
   useStore,
   type Task,
 } from "@/lib/store";
@@ -26,6 +27,16 @@ export function TaskStatusControl({ task }: { task: Task }) {
     updateTask(task.id, { status: next, blocked_reason: undefined });
   };
 
+  // Skip past "blocked" when user cancels, so they don't get stuck cycling
+  const skipBlocked = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPendingBlocked(false);
+    setError("");
+    // advance to the status after "blocked" which is "done"
+    const afterBlocked = nextStatus("blocked" as Status);
+    updateTask(task.id, { status: afterBlocked, blocked_reason: undefined });
+  };
+
   return (
     <div className="relative">
       <button
@@ -44,21 +55,23 @@ export function TaskStatusControl({ task }: { task: Task }) {
               autoFocus
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") { setPendingBlocked(false); setError(""); }
+              }}
               placeholder="Why is this blocked?"
             />
           </Field>
           <div className="mt-2 flex justify-end gap-2">
+            <Button onClick={skipBlocked}>Skip</Button>
             <Button
-              onClick={() => {
-                setPendingBlocked(false);
-                setError("");
-              }}
+              onClick={(e) => { e.stopPropagation(); setPendingBlocked(false); setError(""); }}
             >
               Cancel
             </Button>
             <Button
               variant="danger"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (!reason.trim()) return setError("A reason is required to block");
                 updateTask(task.id, { status: "blocked", blocked_reason: reason.trim() });
                 setPendingBlocked(false);
@@ -129,6 +142,9 @@ export function TaskDrawer({ task, onClose }: { task: Task | null; onClose: () =
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [due, setDue] = useState("");
+  const [blockingDrawer, setBlockingDrawer] = useState(false);
+  const [drawerBlockReason, setDrawerBlockReason] = useState("");
+  const [drawerBlockError, setDrawerBlockError] = useState("");
 
   if (!task) return null;
   const project = projects.find((p) => p.id === task.project_id);
@@ -183,12 +199,11 @@ export function TaskDrawer({ task, onClose }: { task: Task | null; onClose: () =
                 <select
                   value={task.status}
                   onChange={(e) => {
-                    const val = e.target.value as any;
+                    const val = e.target.value as Status;
                     if (val === "blocked") {
-                      const reason = window.prompt("Why is this blocked?");
-                      if (reason !== null && reason.trim()) {
-                        updateTask(task.id, { status: val, blocked_reason: reason.trim() });
-                      }
+                      setDrawerBlockReason(task.blocked_reason ?? "");
+                      setDrawerBlockError("");
+                      setBlockingDrawer(true);
                     } else {
                       updateTask(task.id, { status: val, blocked_reason: undefined });
                     }
@@ -201,6 +216,32 @@ export function TaskDrawer({ task, onClose }: { task: Task | null; onClose: () =
                   <option value="blocked">Blocked</option>
                   <option value="done">Done</option>
                 </select>
+                {blockingDrawer && (
+                  <div className="hairline absolute right-0 top-8 z-30 w-64 rounded-md bg-paper p-2 shadow-sm">
+                    <Field label="Blocked reason" error={drawerBlockError}>
+                      <Input
+                        autoFocus
+                        value={drawerBlockReason}
+                        onChange={(e) => setDrawerBlockReason(e.target.value)}
+                        placeholder="Why is this blocked?"
+                        onKeyDown={(e) => { if (e.key === "Escape") setBlockingDrawer(false); }}
+                      />
+                    </Field>
+                    <div className="mt-2 flex justify-end gap-2">
+                      <Button onClick={() => setBlockingDrawer(false)}>Cancel</Button>
+                      <Button
+                        variant="danger"
+                        onClick={() => {
+                          if (!drawerBlockReason.trim()) return setDrawerBlockError("A reason is required");
+                          updateTask(task.id, { status: "blocked", blocked_reason: drawerBlockReason.trim() });
+                          setBlockingDrawer(false);
+                        }}
+                      >
+                        Block
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </dd>
             </div>
             <div className="flex justify-between px-3 py-2">

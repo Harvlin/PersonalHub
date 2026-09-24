@@ -431,7 +431,9 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     throw new Error(body?.message ?? `API request failed (${response.status})`);
   }
   if (response.status === 204) return undefined as T;
-  return await response.json() as T;
+  const text = await response.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 type ApiWorkspace = {
@@ -448,7 +450,7 @@ type ApiWorkspace = {
 const mapWorkspace = (data: ApiWorkspace): State => ({
   projects: (data.projects ?? []).filter(Boolean).map((p) => ({ id: asText(p.id, uid("project")), name: asText(p.name, "Untitled project"), description: asText(p.description), status: asStatus(p.status), is_archived: Boolean(p.archived), created: asDate(p.createdAt), updated: asDate(p.updatedAt) })),
   milestones: (data.milestones ?? []).filter(Boolean).map((m) => ({ id: asText(m.id, uid("milestone")), project_id: asText(m.projectId), name: asText(m.name, "Untitled milestone"), status: asStatus(m.status) })),
-  tasks: (data.tasks ?? []).filter(Boolean).map((t) => ({ id: asText(t.id, uid("task")), title: asText(t.title, "Untitled task"), description: asText(t.description), status: asStatus(t.status), blocked_reason: asText(t.blockedReason) || undefined, project_id: asText(t.projectId), milestone_id: asText(t.milestoneId), due: typeof t.due === "string" ? t.due : null, created: asDate(t.createdAt), contact_id: asText(t.contactId) || undefined })),
+  tasks: (data.tasks ?? []).filter(Boolean).map((t) => ({ id: asText(t.id, uid("task")), title: asText(t.title, "Untitled task"), description: asText(t.description), status: asStatus(t.status), blocked_reason: asText(t.blockedReason) || undefined, project_id: asText(t.projectId), milestone_id: asText(t.milestoneId), due: typeof t.due === "string" ? t.due.slice(0, 10) : null, created: asDate(typeof t.createdAt === "string" ? t.createdAt.slice(0, 10) : t.createdAt), contact_id: asText(t.contactId) || undefined })),
   contacts: (data.contacts ?? []).filter(Boolean).map((c) => ({ id: asText(c.id, uid("contact")), name: asText(c.name, "Unnamed contact"), origin_context: asText(c.originContext), tags: Array.isArray(c.tags) ? c.tags.filter((tag): tag is string => typeof tag === "string") : [], ping_interval_days: Number.isFinite(c.pingIntervalDays) ? c.pingIntervalDays : 21, last_contact: asDate(c.lastContact), notes: asText(c.notes) || undefined })),
   interactions: (data.interactions ?? []).filter(Boolean).map((i) => ({ id: asText(i.id, uid("interaction")), contact_id: asText(i.contactId), date: asDate(i.date), note: asText(i.note) })),
   resources: (data.resources ?? []).filter(Boolean).map((r) => ({ id: asText(r.id, uid("resource")), project_id: asText(r.projectId), label: asText(r.label, "Untitled resource"), url: asText(r.url), added: asDate(r.addedAt) })),
