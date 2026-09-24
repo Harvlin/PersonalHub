@@ -2,6 +2,7 @@ package com.personalhub.api.controller;
 
 import com.personalhub.api.dto.AuthUserDto;
 import com.personalhub.api.dto.LoginRequest;
+import com.personalhub.api.dto.RegisterRequest;
 import com.personalhub.api.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,5 +31,10 @@ public class AuthController {
     @PostMapping("/login")
     public AuthUserDto login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         return authService.login(request, httpRequest, httpResponse);
+    }
+
+    @PostMapping("/register")
+    public AuthUserDto register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        return authService.register(request, httpRequest, httpResponse);
     }
 }

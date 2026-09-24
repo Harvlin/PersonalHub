@@ -25,6 +25,7 @@ function LandingPage() {
   const [openCapability, setOpenCapability] = useState(0);
   const [capture, setCapture] = useState("");
   const [captured, setCaptured] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="landing-page overflow-hidden">
@@ -32,8 +33,9 @@ function LandingPage() {
         <Link to="/" className="landing-wordmark"><span className="wordmark-mark">PH</span> Personal <em>Hub</em></Link>
         <nav className="landing-links" aria-label="Primary navigation"><a href="#focus">Focus</a><a href="#workflow">Workflow</a><a href="#system">System</a><a href="#capabilities">Capabilities</a></nav>
         <div className="landing-nav-actions"><span className="system-status"><i /> SYSTEM READY</span><Link to="/dashboard" className="landing-open">Open Hub <ArrowUpRight size={14} /></Link></div>
-        <button className="landing-menu" aria-label="Open menu"><Menu size={20} /></button>
+        <button className="landing-menu" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen((open) => !open)}><Menu size={20} /></button>
       </header>
+      {menuOpen ? <nav className="landing-mobile-menu" aria-label="Mobile navigation"><a href="#focus" onClick={() => setMenuOpen(false)}>Focus</a><a href="#workflow" onClick={() => setMenuOpen(false)}>Workflow</a><a href="#system" onClick={() => setMenuOpen(false)}>System</a><a href="#capabilities" onClick={() => setMenuOpen(false)}>Capabilities</a><Link to="/dashboard" onClick={() => setMenuOpen(false)}>Open Hub <ArrowUpRight size={14} /></Link></nav> : null}
 
       <main>
         <section className="landing-hero">

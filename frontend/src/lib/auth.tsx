@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
 
 type AuthUser = { username: string | null; authenticated: boolean };
-type AuthContextValue = AuthUser & { loading: boolean; login: (username: string, password: string) => Promise<void>; logout: () => Promise<void> };
+type AuthContextValue = AuthUser & { loading: boolean; login: (username: string, password: string) => Promise<void>; register: (username: string, password: string) => Promise<void>; logout: () => Promise<void> };
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function readCookie(name: string) {
@@ -50,6 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login: async (username, password) => {
       await request("/api/auth/csrf");
       const response = await request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
+      setUser(await response.json() as AuthUser);
+    },
+    register: async (username, password) => {
+      await request("/api/auth/csrf");
+      const response = await request("/api/auth/register", { method: "POST", body: JSON.stringify({ username, password }) });
       setUser(await response.json() as AuthUser);
     },
     logout: async () => {

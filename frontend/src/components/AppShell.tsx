@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronsUpDown, Search } from "lucide-react";
+import { ChevronsUpDown, Menu, Search, X } from "lucide-react";
 import { Button, Chip, Field, Input, Modal, Segmented } from "@/components/ui-kit";
 import { StatusGlyph } from "@/components/StatusGlyph";
 import { TODAY, initials, useStore } from "@/lib/store";
@@ -41,7 +41,7 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-20 flex h-[52px] shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background px-5">
+    <header className="sticky top-0 z-20 flex h-[52px] shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background pl-14 pr-5 md:px-5">
       <nav className="mono flex min-w-0 items-center gap-1.5 text-[12px] text-ink-muted">
         <span>Personal Hub</span>
         {crumbs.map((c, i) => (
@@ -188,6 +188,39 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
         </div>
       </div>
     </aside>
+  );
+}
+
+function MobileNav({ onSearch, onClose }: { onSearch: () => void; onClose: () => void }) {
+  const { username, logout } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  return (
+    <div className="md:hidden">
+      <div className="flex h-12 items-center border-b border-border bg-paper px-4">
+        <span className="hairline flex h-6 w-6 items-center justify-center rounded-[3px] text-[10px] font-semibold">PH</span>
+        <span className="ml-2 text-[13px] font-semibold">Personal Hub</span>
+        <button onClick={onClose} aria-label="Close navigation" className="focus-ink ml-auto p-2 text-ink-muted hover:text-ink"><X size={18} /></button>
+      </div>
+      <nav className="border-b border-border bg-paper px-3 py-2">
+        {NAV.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onClose}
+            className={cn("block border-l-[3px] px-3 py-2.5 text-[13px]", pathname.startsWith(item.to) ? "border-ink font-semibold text-ink" : "border-transparent text-ink-secondary")}
+          >
+            {item.label}
+          </Link>
+        ))}
+        <button onClick={() => { onClose(); onSearch(); }} className="focus-ink flex w-full items-center gap-2 border-t border-border px-3 py-3 text-left text-[13px] text-ink-secondary">
+          <Search size={13} /> Search
+        </button>
+        <button onClick={() => void logout()} className="focus-ink w-full border-t border-border px-3 py-3 text-left text-[13px] text-ink-secondary">
+          Sign out <span className="mono ml-1 text-[10px] text-ink-muted">({username ?? "Personal"})</span>
+        </button>
+      </nav>
+    </div>
   );
 }
 
@@ -418,7 +451,8 @@ function Palette({ onClose }: { onClose: () => void }) {
 }
 
 function LoginScreen() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -432,18 +466,22 @@ function LoginScreen() {
           event.preventDefault();
           setPending(true);
           setError("");
-          void login(username, password).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to sign in")).finally(() => setPending(false));
+          const action = mode === "login" ? login(username, password) : register(username, password);
+          void action.catch((reason: unknown) => setError(reason instanceof Error ? reason.message : mode === "login" ? "Unable to sign in" : "Unable to create account")).finally(() => setPending(false));
         }}
       >
         <div className="micro-label">Personal Hub / Private Workspace</div>
-        <h1 className="mt-3 text-xl font-semibold">Sign in</h1>
+        <h1 className="mt-3 text-xl font-semibold">{mode === "login" ? "Sign in" : "Create your account"}</h1>
         <p className="mono mt-2 text-[11px] text-ink-muted">Your session is protected by an encrypted server-side cookie.</p>
         <div className="mt-5 space-y-3">
           <Field label="Username"><Input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" /></Field>
-          <Field label="Password"><Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></Field>
+          <Field label="Password"><Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} /></Field>
         </div>
         {error ? <p className="mono mt-3 text-[11px] text-signal">{error}</p> : null}
-        <Button className="mt-5 w-full" variant="solid" type="submit" disabled={pending}>{pending ? "Signing in..." : "Sign in"}</Button>
+        <Button className="mt-5 w-full" variant="solid" type="submit" disabled={pending}>{pending ? "Working..." : mode === "login" ? "Sign in" : "Create account"}</Button>
+        <button type="button" className="mono mt-4 w-full text-[11px] text-ink-muted underline underline-offset-4 hover:text-ink" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}>
+          {mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+        </button>
       </form>
     </div>
   );
@@ -455,6 +493,7 @@ export function AppShell() {
   const [quickAdd, setQuickAdd] = useState<QuickAddPrefill | null>(null);
   const [palette, setPalette] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
@@ -484,6 +523,10 @@ export function AppShell() {
   const isLanding = pathname === "/";
   const auth = useAuth();
 
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
   if (!isLanding && auth.loading) return <div className="flex min-h-screen items-center justify-center bg-background"><span className="mono text-[11px] text-ink-muted">Checking session...</span></div>;
   if (!isLanding && !auth.authenticated) return <LoginScreen />;
 
@@ -492,6 +535,12 @@ export function AppShell() {
       <div className={cn("flex min-h-screen w-full", isLanding ? "bg-[#f4f4f2]" : "bg-background")}>
         {!isLanding ? <Sidebar onSearch={openPalette} /> : null}
         <main className="flex min-w-0 flex-1 flex-col">
+          {!isLanding ? (
+            <button onClick={() => setMobileNavOpen((open) => !open)} aria-label="Open navigation" className="focus-ink fixed left-3 top-2 z-30 flex h-8 w-8 items-center justify-center rounded-[3px] border border-border bg-paper text-ink md:hidden">
+              {mobileNavOpen ? <X size={16} /> : <Menu size={16} />}
+            </button>
+          ) : null}
+          {!isLanding && mobileNavOpen ? <MobileNav onSearch={openPalette} onClose={() => setMobileNavOpen(false)} /> : null}
           <Outlet />
         </main>
       </div>
