@@ -16,6 +16,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,8 +25,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, @Value("${server.servlet.session.cookie.same-site}") String sameSite, @Value("${server.servlet.session.cookie.secure}") boolean secureCookies) throws Exception {
         CookieCsrfTokenRepository csrfTokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        csrfTokens.setCookieCustomizer(cookie -> cookie.sameSite(sameSite).secure(secureCookies).path("/"));
         CsrfTokenRequestAttributeHandler csrfHandler = new CsrfTokenRequestAttributeHandler();
         csrfHandler.setCsrfRequestAttributeName(null);
 
@@ -51,13 +53,26 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutUrl("/api/auth/logout")
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID", "XSRF-TOKEN")
+                .deleteCookies("SESSION", "JSESSIONID", "XSRF-TOKEN")
                 .logoutSuccessHandler((request, response, authentication) -> response.setStatus(204)))
             .build();
     }
 
     @Bean
     PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+
+    @Bean
+    DefaultCookieSerializer sessionCookieSerializer(
+        @Value("${server.servlet.session.cookie.same-site}") String sameSite,
+        @Value("${server.servlet.session.cookie.secure}") boolean secureCookies
+    ) {
+        DefaultCookieSerializer serializer = new DefaultCookieSerializer();
+        serializer.setSameSite(sameSite);
+        serializer.setUseSecureCookie(secureCookies);
+        serializer.setCookiePath("/");
+        serializer.setUseHttpOnlyCookie(true);
+        return serializer;
+    }
     
         @Bean
         InMemoryUserDetailsManager userDetailsService() { return new InMemoryUserDetailsManager(); }

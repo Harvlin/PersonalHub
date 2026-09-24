@@ -27,6 +27,12 @@ spring:
 server:
   port: ${PORT:8080}
   shutdown: graceful
+  servlet:
+    session:
+      cookie:
+        same-site: ${SESSION_COOKIE_SAME_SITE:none}
+        secure: ${SESSION_COOKIE_SECURE:true}
+        http-only: true
 management:
   endpoints:
     web:

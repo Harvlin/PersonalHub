@@ -38,6 +38,7 @@ The current default is `spring.jpa.hibernate.ddl-auto=update`, which is convenie
 - Use a managed PostgreSQL database with automated backups.
 - Set `PERSONAL_HUB_USERNAME` and a strong BCrypt `PERSONAL_HUB_PASSWORD_HASH`; never commit `.env`.
 - Set `APP_CORS_ORIGINS` to the exact frontend origin, without `*`.
+- For a frontend hosted on another domain, set `SESSION_COOKIE_SAME_SITE=none` and `SESSION_COOKIE_SECURE=true`.
 - Set `SPRING_JPA_HIBERNATE_DDL_AUTO=validate` after adding migrations.
 - Put the API behind HTTPS and a reverse proxy/managed ingress.
 - Rotate the API key if it is ever exposed.

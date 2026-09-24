@@ -3,6 +3,7 @@ package com.personalhub.api.controller;
 import com.personalhub.api.dto.AuthUserDto;
 import com.personalhub.api.dto.LoginRequest;
 import com.personalhub.api.dto.RegisterRequest;
+import com.personalhub.api.dto.CsrfTokenDto;
 import com.personalhub.api.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.web.csrf.CsrfToken;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -26,7 +28,7 @@ public class AuthController {
     public AuthUserDto me() { return authService.currentUser(); }
 
     @GetMapping("/csrf")
-    public ResponseEntity<Void> csrf() { return ResponseEntity.noContent().build(); }
+    public CsrfTokenDto csrf(CsrfToken token) { return new CsrfTokenDto(token.getToken()); }
 
     @PostMapping("/login")
     public AuthUserDto login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {

@@ -5,18 +5,14 @@ const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
 type AuthUser = { username: string | null; authenticated: boolean };
 type AuthContextValue = AuthUser & { loading: boolean; login: (username: string, password: string) => Promise<void>; register: (username: string, password: string) => Promise<void>; logout: () => Promise<void> };
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-function readCookie(name: string) {
-  return document.cookie.split("; ").find((item) => item.startsWith(`${name}=`))?.split("=")[1] ?? "";
-}
+let csrfToken = "";
 
 async function request(path: string, options: RequestInit = {}) {
   const method = options.method?.toUpperCase() ?? "GET";
   const headers = new Headers(options.headers);
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    const token = readCookie("XSRF-TOKEN");
-    if (token) headers.set("X-XSRF-TOKEN", decodeURIComponent(token));
+    if (csrfToken) headers.set("X-XSRF-TOKEN", csrfToken);
   }
   const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
   if (!response.ok) {
@@ -26,6 +22,14 @@ async function request(path: string, options: RequestInit = {}) {
   return response;
 }
 
+export async function ensureCsrfToken() {
+  if (csrfToken) return csrfToken;
+  const response = await request("/api/auth/csrf");
+  const body = await response.json() as { token: string };
+  csrfToken = body.token;
+  return csrfToken;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser>({ username: null, authenticated: false });
   const [loading, setLoading] = useState(true);
@@ -33,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void (async () => {
       try {
-        await request("/api/auth/csrf");
+        await ensureCsrfToken();
         const response = await request("/api/auth/me");
         setUser(await response.json() as AuthUser);
       } catch {
@@ -48,12 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ...user,
     loading,
     login: async (username, password) => {
-      await request("/api/auth/csrf");
+      await ensureCsrfToken();
       const response = await request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
       setUser(await response.json() as AuthUser);
     },
     register: async (username, password) => {
-      await request("/api/auth/csrf");
+      await ensureCsrfToken();
       const response = await request("/api/auth/register", { method: "POST", body: JSON.stringify({ username, password }) });
       setUser(await response.json() as AuthUser);
     },

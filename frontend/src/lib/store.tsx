@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useAuth } from "@/lib/auth";
+import { ensureCsrfToken, useAuth } from "@/lib/auth";
 
 export type Status = "todo" | "in_progress" | "waiting" | "blocked" | "done";
 
@@ -403,15 +403,12 @@ type Store = State & {
 const StoreContext = createContext<Store | null>(null);
 
 const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
-const readCookie = (name: string) => document.cookie.split("; ").find((item) => item.startsWith(`${name}=`))?.split("=")[1] ?? "";
-
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = options.method?.toUpperCase() ?? "GET";
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+  if (options.body !== undefined) headers.set("Content-Type", "application/json");
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    const csrf = readCookie("XSRF-TOKEN");
-    if (csrf) headers.set("X-XSRF-TOKEN", decodeURIComponent(csrf));
+    headers.set("X-XSRF-TOKEN", await ensureCsrfToken());
   }
   const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
   if (!response.ok) throw new Error(`API request failed (${response.status})`);
