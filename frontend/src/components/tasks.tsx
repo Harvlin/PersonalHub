@@ -177,9 +177,31 @@ export function TaskDrawer({ task, onClose }: { task: Task | null; onClose: () =
             {task.description || "No description."}
           </p>
           <dl className="hairline mono divide-y divide-border rounded-md text-[12px]">
-            <div className="flex justify-between px-3 py-2">
+            <div className="flex justify-between px-3 py-2 items-center">
               <dt className="text-ink-muted">status</dt>
-              <dd>{statusLabel(task.status)}</dd>
+              <dd>
+                <select
+                  value={task.status}
+                  onChange={(e) => {
+                    const val = e.target.value as any;
+                    if (val === "blocked") {
+                      const reason = window.prompt("Why is this blocked?");
+                      if (reason !== null && reason.trim()) {
+                        updateTask(task.id, { status: val, blocked_reason: reason.trim() });
+                      }
+                    } else {
+                      updateTask(task.id, { status: val, blocked_reason: undefined });
+                    }
+                  }}
+                  className="bg-transparent text-right outline-none cursor-pointer hover:underline decoration-border underline-offset-2 hover:text-ink focus-ink"
+                >
+                  <option value="todo">Todo</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="waiting">Waiting</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="done">Done</option>
+                </select>
+              </dd>
             </div>
             <div className="flex justify-between px-3 py-2">
               <dt className="text-ink-muted">project</dt>
