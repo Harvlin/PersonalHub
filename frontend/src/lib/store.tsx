@@ -73,6 +73,11 @@ export type Contact = {
   last_contact: string;
 };
 
+const STATUSES: Status[] = ["todo", "in_progress", "waiting", "blocked", "done"];
+const asText = (value: unknown, fallback = "") => typeof value === "string" ? value : fallback;
+const asStatus = (value: unknown): Status => STATUSES.includes(value as Status) ? value as Status : "todo";
+const asDate = (value: unknown, fallback = TODAY) => typeof value === "string" && value.length > 0 ? value : fallback;
+
 const today = new Date();
 export const iso = (d: Date) => d.toISOString().slice(0, 10);
 export const daysAgo = (n: number) => {
@@ -85,17 +90,19 @@ export const daysAhead = (n: number) => daysAgo(-n);
 export const TODAY = iso(today);
 
 export function daysBetween(a: string, b: string) {
+  if (!a || !b) return 0;
   return Math.round(
     (new Date(b + "T00:00:00").getTime() - new Date(a + "T00:00:00").getTime()) / 86400000,
   );
 }
 
 export function ageInDays(dateStr: string) {
+  if (!dateStr) return 0;
   return Math.max(0, daysBetween(dateStr, TODAY));
 }
 
 export function initials(name: string) {
-  return name
+  return asText(name, "?")
     .split(" ")
     .map((p) => p[0])
     .slice(0, 2)
@@ -428,14 +435,14 @@ type ApiWorkspace = {
 };
 
 const mapWorkspace = (data: ApiWorkspace): State => ({
-  projects: data.projects.map((p) => ({ id: p.id, name: p.name, description: p.description ?? "", status: p.status, is_archived: p.archived, created: p.createdAt, updated: p.updatedAt })),
-  milestones: data.milestones.map((m) => ({ id: m.id, project_id: m.projectId, name: m.name, status: m.status })),
-  tasks: data.tasks.map((t) => ({ id: t.id, title: t.title, description: t.description ?? "", status: t.status, blocked_reason: t.blockedReason, project_id: t.projectId, milestone_id: t.milestoneId, due: t.due, created: t.createdAt, contact_id: t.contactId })),
-  contacts: data.contacts.map((c) => ({ id: c.id, name: c.name, origin_context: c.originContext ?? "", tags: c.tags, ping_interval_days: c.pingIntervalDays, last_contact: c.lastContact ?? TODAY })),
-  interactions: data.interactions.map((i) => ({ id: i.id, contact_id: i.contactId, date: i.date, note: i.note })),
-  resources: data.resources.map((r) => ({ id: r.id, project_id: r.projectId, label: r.label, url: r.url, added: r.addedAt })),
-  attachments: data.attachments.map((a) => ({ id: a.id, project_id: a.projectId, name: a.name, size: a.size, uploaded: a.uploadedAt })),
-  defaultPingInterval: data.settings.defaultPingInterval,
+  projects: (data.projects ?? []).filter(Boolean).map((p) => ({ id: asText(p.id, uid("project")), name: asText(p.name, "Untitled project"), description: asText(p.description), status: asStatus(p.status), is_archived: Boolean(p.archived), created: asDate(p.createdAt), updated: asDate(p.updatedAt) })),
+  milestones: (data.milestones ?? []).filter(Boolean).map((m) => ({ id: asText(m.id, uid("milestone")), project_id: asText(m.projectId), name: asText(m.name, "Untitled milestone"), status: asStatus(m.status) })),
+  tasks: (data.tasks ?? []).filter(Boolean).map((t) => ({ id: asText(t.id, uid("task")), title: asText(t.title, "Untitled task"), description: asText(t.description), status: asStatus(t.status), blocked_reason: asText(t.blockedReason) || undefined, project_id: asText(t.projectId), milestone_id: asText(t.milestoneId), due: typeof t.due === "string" ? t.due : null, created: asDate(t.createdAt), contact_id: asText(t.contactId) || undefined })),
+  contacts: (data.contacts ?? []).filter(Boolean).map((c) => ({ id: asText(c.id, uid("contact")), name: asText(c.name, "Unnamed contact"), origin_context: asText(c.originContext), tags: Array.isArray(c.tags) ? c.tags.filter((tag): tag is string => typeof tag === "string") : [], ping_interval_days: Number.isFinite(c.pingIntervalDays) ? c.pingIntervalDays : 21, last_contact: asDate(c.lastContact) })),
+  interactions: (data.interactions ?? []).filter(Boolean).map((i) => ({ id: asText(i.id, uid("interaction")), contact_id: asText(i.contactId), date: asDate(i.date), note: asText(i.note) })),
+  resources: (data.resources ?? []).filter(Boolean).map((r) => ({ id: asText(r.id, uid("resource")), project_id: asText(r.projectId), label: asText(r.label, "Untitled resource"), url: asText(r.url), added: asDate(r.addedAt) })),
+  attachments: (data.attachments ?? []).filter(Boolean).map((a) => ({ id: asText(a.id, uid("attachment")), project_id: asText(a.projectId), name: asText(a.name, "Unnamed attachment"), size: asText(a.size), uploaded: asDate(a.uploadedAt) })),
+  defaultPingInterval: Number.isFinite(data.settings?.defaultPingInterval) ? data.settings.defaultPingInterval : 21,
 });
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -518,16 +525,17 @@ export function statusLabel(s: Status) {
     waiting: "Waiting",
     blocked: "Blocked",
     done: "Done",
-  }[s];
+  }[asStatus(s)];
 }
 
 export function pingInfo(contact: Contact) {
   const since = ageInDays(contact.last_contact);
-  const overdueBy = since - contact.ping_interval_days;
+  const interval = Number.isFinite(contact.ping_interval_days) ? Math.max(1, contact.ping_interval_days) : 21;
+  const overdueBy = since - interval;
   return {
     since,
     overdue: overdueBy > 0,
     overdueBy,
-    nextPing: daysAhead(-since + contact.ping_interval_days),
+    nextPing: daysAhead(-since + interval),
   };
 }
