@@ -41,8 +41,8 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-20 flex h-[52px] shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background pl-14 pr-5 md:px-5">
-      <nav className="mono flex min-w-0 items-center gap-1.5 text-[12px] text-ink-muted">
+    <header className="sticky top-0 z-20 flex min-h-[52px] shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background pl-14 pr-3 md:px-5">
+      <nav className="mono min-w-0 flex-1 items-center gap-1.5 truncate text-[12px] text-ink-muted md:flex">
         <span>Personal Hub</span>
         {crumbs.map((c, i) => (
           <span key={i} className="flex min-w-0 items-center gap-1.5">
@@ -61,7 +61,7 @@ export function PageHeader({
           </span>
         ))}
       </nav>
-      <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">{children}</div>
     </header>
   );
 }
@@ -196,8 +196,8 @@ function MobileNav({ onSearch, onClose }: { onSearch: () => void; onClose: () =>
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <div className="md:hidden">
-      <div className="flex h-12 items-center border-b border-border bg-paper px-4">
+    <div className="fixed inset-x-0 top-0 z-40 max-h-[100dvh] overflow-y-auto border-b border-border bg-paper md:hidden">
+      <div className="flex h-12 items-center px-4">
         <span className="hairline flex h-6 w-6 items-center justify-center rounded-[3px] text-[10px] font-semibold">PH</span>
         <span className="ml-2 text-[13px] font-semibold">Personal Hub</span>
         <button onClick={onClose} aria-label="Close navigation" className="focus-ink ml-auto p-2 text-ink-muted hover:text-ink"><X size={18} /></button>
@@ -532,7 +532,7 @@ export function AppShell() {
 
   return (
     <UIContext.Provider value={value}>
-      <div className={cn("flex min-h-screen w-full", isLanding ? "bg-[#f4f4f2]" : "bg-background")}>
+      <div className={cn("flex min-h-screen w-full min-w-0 overflow-x-hidden", isLanding ? "bg-[#f4f4f2]" : "bg-background")}>
         {!isLanding ? <Sidebar onSearch={openPalette} /> : null}
         <main className="flex min-w-0 flex-1 flex-col">
           {!isLanding ? (

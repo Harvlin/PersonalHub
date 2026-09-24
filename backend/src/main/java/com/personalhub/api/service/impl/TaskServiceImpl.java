@@ -33,7 +33,23 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskDto create(CreateTaskRequest request) { touchProject(request.projectId()); Task entity = mapper.toEntity(request); entity.setCreatedAt(Instant.now()); return mapper.toDto(tasks.save(entity)); }
     @Override
-    public TaskDto update(UUID id, RequestModels.TaskPatch request) { Task entity = task(id); if (request.title() != null) entity.setTitle(request.title()); if (request.description() != null) entity.setDescription(request.description()); if (request.status() != null) entity.setStatus(request.status()); if (request.blockedReason() != null) entity.setBlockedReason(request.blockedReason()); if (request.projectId() != null) { entity.setProjectId(request.projectId()); touchProject(request.projectId()); } if (request.milestoneId() != null) entity.setMilestoneId(request.milestoneId()); if (request.due() != null) entity.setDue(request.due()); if (request.contactId() != null) entity.setContactId(request.contactId()); return mapper.toDto(tasks.save(entity)); }
+    public TaskDto update(UUID id, RequestModels.TaskPatch request) {
+        Task entity = task(id);
+        if (request.status() == com.personalhub.api.enums.Status.BLOCKED
+            && (request.blockedReason() == null || request.blockedReason().isBlank())
+            && (entity.getBlockedReason() == null || entity.getBlockedReason().isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "BLOCKED requires blockedReason");
+        }
+        if (request.title() != null) entity.setTitle(request.title());
+        if (request.description() != null) entity.setDescription(request.description());
+        if (request.status() != null) entity.setStatus(request.status());
+        if (request.blockedReason() != null) entity.setBlockedReason(request.blockedReason());
+        if (request.projectId() != null) { entity.setProjectId(request.projectId()); touchProject(request.projectId()); }
+        if (request.milestoneId() != null) entity.setMilestoneId(request.milestoneId());
+        if (request.due() != null) entity.setDue(request.due());
+        if (request.contactId() != null) entity.setContactId(request.contactId());
+        return mapper.toDto(tasks.save(entity));
+    }
     @Override
     public void delete(UUID id) { tasks.delete(task(id)); }
     private Task task(UUID id) { return tasks.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Task not found")); }

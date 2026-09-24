@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,6 +25,16 @@ public class GlobalExceptionHandler {
         Map<String, String> fields = exception.getBindingResult().getFieldErrors().stream()
             .collect(java.util.stream.Collectors.toMap(FieldError::getField, error -> error.getDefaultMessage() == null ? "Invalid value" : error.getDefaultMessage(), (a, b) -> a));
         return ResponseEntity.badRequest().body(Map.of("timestamp", Instant.now(), "status", 400, "error", "Bad Request", "message", "Validation failed", "fields", fields));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException exception) {
+        String message = "Invalid request payload";
+        if (exception.getMessage() != null && exception.getMessage().contains("Status")) {
+            message = "status must be one of TODO, IN_PROGRESS, WAITING, BLOCKED, DONE";
+        }
+        return ResponseEntity.badRequest().body(Map.of(
+            "timestamp", Instant.now(), "status", 400, "error", "Bad Request", "message", message));
     }
 
     @ExceptionHandler(Exception.class)

@@ -62,7 +62,8 @@ function ContactsPage() {
               onAction={() => openQuickAdd({ type: "contact" })}
             />
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[650px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="micro-label px-4 py-2 text-left">Name</th>
@@ -106,6 +107,7 @@ function ContactsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </Card>
       </div>

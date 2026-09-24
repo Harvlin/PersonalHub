@@ -410,6 +410,7 @@ type Store = State & {
 const StoreContext = createContext<Store | null>(null);
 
 const API_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
+const wireStatus = (status: Status | undefined) => status?.toUpperCase();
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = options.method?.toUpperCase() ?? "GET";
   const headers = new Headers(options.headers);
@@ -418,7 +419,10 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     headers.set("X-XSRF-TOKEN", await ensureCsrfToken());
   }
   const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
-  if (!response.ok) throw new Error(`API request failed (${response.status})`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message ?? `API request failed (${response.status})`);
+  }
   if (response.status === 204) return undefined as T;
   return await response.json() as T;
 }
@@ -460,7 +464,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateProject: Store["updateProject"] = useCallback(async (id, patch) => { await apiRequest(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, description: patch.description, status: patch.status, archived: patch.is_archived }) }); await reload(); }, [reload]);
   const addMilestone: Store["addMilestone"] = useCallback(async (projectId, name) => { const response = await apiRequest<ApiWorkspace["milestones"][number]>(`/api/projects/${projectId}/milestones`, { method: "POST", body: JSON.stringify({ name }) }); const milestone = { id: response.id, project_id: response.projectId, name: response.name, status: response.status }; setState((s) => ({ ...s, milestones: [...s.milestones, milestone] })); return milestone; }, []);
   const addTask: Store["addTask"] = useCallback(async (input) => { const response = await apiRequest<ApiWorkspace["tasks"][number]>("/api/tasks", { method: "POST", body: JSON.stringify({ title: input.title, description: input.description, projectId: input.project_id, milestoneId: input.milestone_id, due: input.due, contactId: input.contact_id }) }); const task = { id: response.id, title: response.title, description: response.description ?? "", status: response.status, blocked_reason: response.blockedReason, project_id: response.projectId, milestone_id: response.milestoneId, due: response.due, created: response.createdAt, contact_id: response.contactId }; setState((s) => ({ ...s, tasks: [task, ...s.tasks] })); return task; }, []);
-  const updateTask: Store["updateTask"] = useCallback(async (id, patch) => { await apiRequest(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ title: patch.title, description: patch.description, status: patch.status, blockedReason: patch.blocked_reason, projectId: patch.project_id, milestoneId: patch.milestone_id, due: patch.due, contactId: patch.contact_id }) }); await reload(); }, [reload]);
+  const updateTask: Store["updateTask"] = useCallback(async (id, patch) => { await apiRequest(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ title: patch.title, description: patch.description, status: wireStatus(patch.status), blockedReason: patch.blocked_reason, projectId: patch.project_id, milestoneId: patch.milestone_id, due: patch.due, contactId: patch.contact_id }) }); await reload(); }, [reload]);
   const deleteTask: Store["deleteTask"] = useCallback(async (id) => { await apiRequest(`/api/tasks/${id}`, { method: "DELETE" }); setState((s) => ({ ...s, tasks: s.tasks.filter((task) => task.id !== id) })); }, []);
   const addContact: Store["addContact"] = useCallback(async (input) => { const response = await apiRequest<ApiWorkspace["contacts"][number]>("/api/contacts", { method: "POST", body: JSON.stringify({ name: input.name, originContext: input.origin_context, tags: input.tags, pingIntervalDays: input.ping_interval_days }) }); const contact = { id: response.id, name: response.name, origin_context: response.originContext ?? "", tags: response.tags, ping_interval_days: response.pingIntervalDays, last_contact: response.lastContact ?? TODAY }; setState((s) => ({ ...s, contacts: [contact, ...s.contacts] })); return contact; }, []);
   const updateContact: Store["updateContact"] = useCallback(async (id, patch) => { await apiRequest(`/api/contacts/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, originContext: patch.origin_context, tags: patch.tags, pingIntervalDays: patch.ping_interval_days, lastContact: patch.last_contact }) }); await reload(); }, [reload]);
