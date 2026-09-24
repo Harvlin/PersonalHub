@@ -16,7 +16,8 @@ export function TaskStatusControl({ task }: { task: Task }) {
   const [reason, setReason] = useState(task.blocked_reason ?? "");
   const [error, setError] = useState("");
 
-  const cycle = () => {
+  const cycle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = nextStatus(task.status);
     if (next === "blocked") {
       setPendingBlocked(true);

@@ -76,7 +76,13 @@ export type Contact = {
 
 const STATUSES: Status[] = ["todo", "in_progress", "waiting", "blocked", "done"];
 const asText = (value: unknown, fallback = "") => typeof value === "string" ? value : fallback;
-const asStatus = (value: unknown): Status => STATUSES.includes(value as Status) ? value as Status : "todo";
+const asStatus = (value: unknown): Status => {
+  if (typeof value === "string") {
+    const lower = value.toLowerCase() as Status;
+    if (STATUSES.includes(lower)) return lower;
+  }
+  return "todo";
+};
 const asDate = (value: unknown, fallback = TODAY) => typeof value === "string" && value.length > 0 ? value : fallback;
 
 const today = new Date();
