@@ -45,6 +45,15 @@ if (existsSync(serverSrc)) {
   console.log("  ✓ Copied dist/server → .vercel/output/functions/index.func/dist/server");
 }
 
+// CRITICAL: Ensure Node.js treats all .js files in the function bundle as ES Modules!
+// Without this in /var/task, Node defaults to CommonJS and crashes with:
+// "SyntaxError: Unexpected token 'export'" when loading server.js.
+const pkgJson = JSON.stringify({ type: "module" }, null, 2);
+writeFileSync(resolve(funcDir, "package.json"), pkgJson);
+writeFileSync(resolve(funcDir, "dist", "package.json"), pkgJson);
+writeFileSync(resolve(funcDir, "dist", "server", "package.json"), pkgJson);
+console.log("  ✓ Wrote package.json (type: module) into function bundle");
+
 // Bridge Web Fetch API (what server.ts exports) → Node.js (req, res)
 // which is what the Vercel Node.js runtime actually calls.
 writeFileSync(
@@ -62,13 +71,21 @@ export default async function vercelHandler(req, res) {
     if (Array.isArray(host)) host = host[0];
     else host = host.split(",")[0].trim();
 
-    const url = new URL(req.url, proto + "://" + host);
+    let path = req.url || "/";
+    if (path.startsWith("/index") && req.headers["x-matched-path"]) {
+      path = req.headers["x-matched-path"];
+    }
+
+    const url = new URL(path, proto + "://" + host);
 
     const headers = new Headers();
     for (const [k, v] of Object.entries(req.headers)) {
       if (v != null) {
-        if (Array.isArray(v)) { for (const s of v) headers.append(k, s); }
-        else headers.set(k, v);
+        if (Array.isArray(v)) {
+          for (const s of v) headers.append(k, s);
+        } else {
+          headers.set(k, v);
+        }
       }
     }
 
@@ -91,14 +108,23 @@ export default async function vercelHandler(req, res) {
     const response = await handler.fetch(request, {}, {});
 
     res.statusCode = response.status;
+    if (typeof response.headers.getSetCookie === "function") {
+      const setCookies = response.headers.getSetCookie();
+      if (setCookies && setCookies.length > 0) {
+        res.setHeader("set-cookie", setCookies);
+      }
+    }
     for (const [k, v] of response.headers.entries()) {
-      res.setHeader(k, v);
+      if (k.toLowerCase() !== "set-cookie") {
+        res.setHeader(k, v);
+      }
     }
     const buf = await response.arrayBuffer();
     res.end(Buffer.from(buf));
   } catch (err) {
+    console.error("Vercel SSR Handler error:", err);
     res.statusCode = 500;
-    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end(err.stack || String(err));
   }
 }
@@ -129,12 +155,10 @@ writeFileSync(
     {
       version: 3,
       routes: [
-        // Static client assets (hashed filenames) — served directly by CDN
-        { src: "^/assets/(.+)$", dest: "/assets/$1" },
-        // Favicon and other root static files
-        { src: "^/(favicon\\.ico|robots\\.txt|sitemap\\.xml)$", dest: "/$1" },
-        // All other requests → SSR function
-        { src: "^/(.*)$", dest: "/index" },
+        // Automatically check static files first (assets, favicon, etc.)
+        { handle: "filesystem" },
+        // All non-static requests → SSR function
+        { src: "/(.*)", dest: "/index" },
       ],
     },
     null,
