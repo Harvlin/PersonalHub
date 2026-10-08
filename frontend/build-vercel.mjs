@@ -53,42 +53,54 @@ writeFileSync(
 import handler from "./dist/server/server.js";
 
 export default async function vercelHandler(req, res) {
-  const proto = req.headers["x-forwarded-proto"] || "https";
-  const host  = req.headers["host"] || "localhost";
-  const url   = new URL(req.url, proto + "://" + host);
+  try {
+    let proto = req.headers["x-forwarded-proto"] || "https";
+    if (Array.isArray(proto)) proto = proto[0];
+    else proto = proto.split(",")[0].trim();
 
-  const headers = new Headers();
-  for (const [k, v] of Object.entries(req.headers)) {
-    if (v != null) {
-      if (Array.isArray(v)) { for (const s of v) headers.append(k, s); }
-      else headers.set(k, v);
+    let host = req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
+    if (Array.isArray(host)) host = host[0];
+    else host = host.split(",")[0].trim();
+
+    const url = new URL(req.url, proto + "://" + host);
+
+    const headers = new Headers();
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (v != null) {
+        if (Array.isArray(v)) { for (const s of v) headers.append(k, s); }
+        else headers.set(k, v);
+      }
     }
-  }
 
-  let body;
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    body = await new Promise((resolve, reject) => {
-      const chunks = [];
-      req.on("data", c => chunks.push(c));
-      req.on("end", () => resolve(Buffer.concat(chunks)));
-      req.on("error", reject);
+    let body;
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      body = await new Promise((resolve, reject) => {
+        const chunks = [];
+        req.on("data", c => chunks.push(c));
+        req.on("end", () => resolve(Buffer.concat(chunks)));
+        req.on("error", reject);
+      });
+    }
+
+    const request = new Request(url.toString(), {
+      method: req.method,
+      headers,
+      body: body && body.length > 0 ? body : undefined,
     });
+
+    const response = await handler.fetch(request, {}, {});
+
+    res.statusCode = response.status;
+    for (const [k, v] of response.headers.entries()) {
+      res.setHeader(k, v);
+    }
+    const buf = await response.arrayBuffer();
+    res.end(Buffer.from(buf));
+  } catch (err) {
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "text/plain");
+    res.end(err.stack || String(err));
   }
-
-  const request = new Request(url.toString(), {
-    method: req.method,
-    headers,
-    body: body && body.length > 0 ? body : undefined,
-  });
-
-  const response = await handler.fetch(request, {}, {});
-
-  res.statusCode = response.status;
-  for (const [k, v] of response.headers.entries()) {
-    res.setHeader(k, v);
-  }
-  const buf = await response.arrayBuffer();
-  res.end(Buffer.from(buf));
 }
 `.trimStart()
 );
