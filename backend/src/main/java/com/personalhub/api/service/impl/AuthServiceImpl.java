@@ -53,8 +53,7 @@ public class AuthServiceImpl implements AuthService {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
-        // Fix session fixation: rotate session ID before attaching the security context
-        httpRequest.changeSessionId();
+        // Create a new session (getSession(true) creates one if none exists, avoiding fixation)
         httpRequest.getSession(true).setAttribute(
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
         return new AuthUserDto(username, true);
