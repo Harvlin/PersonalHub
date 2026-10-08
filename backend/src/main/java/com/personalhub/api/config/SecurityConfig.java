@@ -16,7 +16,6 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -91,17 +90,6 @@ public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
-    @Bean
-    DefaultCookieSerializer sessionCookieSerializer(
-            @Value("${server.servlet.session.cookie.same-site}") String sameSite,
-            @Value("${server.servlet.session.cookie.secure}") boolean secureCookies) {
-        DefaultCookieSerializer serializer = new DefaultCookieSerializer();
-        serializer.setSameSite(sameSite);
-        serializer.setUseSecureCookie(secureCookies);
-        serializer.setCookiePath("/");
-        serializer.setUseHttpOnlyCookie(true);
-        return serializer;
-    }
 
     @Bean
     InMemoryUserDetailsManager userDetailsService() { return new InMemoryUserDetailsManager(); }
