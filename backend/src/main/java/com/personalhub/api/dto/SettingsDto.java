@@ -1,3 +1,3 @@
 package com.personalhub.api.dto;
 
-public record SettingsDto(int defaultPingInterval) {}
+public record SettingsDto(int defaultPingInterval, int activeProjectLimit) {}

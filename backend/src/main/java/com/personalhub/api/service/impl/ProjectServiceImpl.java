@@ -45,15 +45,25 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public MilestoneDto addMilestone(UUID projectId, CreateMilestoneRequest request) { Project project = project(projectId); Milestone entity = new Milestone(projectId, request.name()); project.setUpdatedAt(Instant.now()); projects.save(project); return milestoneMapper.toDto(milestones.save(entity)); }
     @Override
-    public MilestoneDto updateMilestone(UUID projectId, UUID milestoneId, RequestModels.MilestonePatch request) { project(projectId); Milestone entity = milestones.findById(milestoneId).filter(item -> item.getProjectId().equals(projectId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Milestone not found")); if (request.name() != null) entity.setName(request.name()); if (request.status() != null) entity.setStatus(request.status()); return milestoneMapper.toDto(milestones.save(entity)); }
+    public MilestoneDto updateMilestone(UUID projectId, UUID milestoneId, RequestModels.MilestonePatch request) { Project project = project(projectId); Milestone entity = milestones.findById(milestoneId).filter(item -> item.getProjectId().equals(projectId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Milestone not found")); if (request.name() != null) entity.setName(request.name()); if (request.status() != null) entity.setStatus(request.status()); project.setUpdatedAt(Instant.now()); projects.save(project); return milestoneMapper.toDto(milestones.save(entity)); }
     @Override @Transactional(readOnly = true)
     public List<ResourceDto> resources(UUID projectId) { project(projectId); return resources.findByProjectIdOrderByAddedAtDesc(projectId).stream().map(resourceMapper::toDto).toList(); }
     @Override
     public ResourceDto addResource(UUID projectId, CreateResourceRequest request) { Project project = project(projectId); Resource entity = new Resource(projectId, request.label(), request.url()); entity.setAddedAt(Instant.now()); project.setUpdatedAt(Instant.now()); projects.save(project); return resourceMapper.toDto(resources.save(entity)); }
+    @Override
+    public ResourceDto updateResource(UUID projectId, UUID resourceId, RequestModels.ResourcePatch request) {
+        Project project = project(projectId);
+        Resource entity = resources.findById(resourceId).filter(item -> item.getProjectId().equals(projectId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found"));
+        boolean changed = false;
+        if (request.label() != null) { entity.setLabel(request.label()); changed = true; }
+        if (request.url() != null) { entity.setUrl(request.url()); changed = true; }
+        if (changed) { project.setUpdatedAt(Instant.now()); projects.save(project); resources.save(entity); }
+        return resourceMapper.toDto(entity);
+    }
     @Override @Transactional(readOnly = true)
     public List<AttachmentDto> attachments(UUID projectId) { project(projectId); return attachments.findByProjectIdOrderByUploadedAtDesc(projectId).stream().map(attachmentMapper::toDto).toList(); }
     @Override
-    public AttachmentDto addAttachment(UUID projectId, CreateAttachmentRequest request) { Project project = project(projectId); Attachment entity = new Attachment(projectId, request.name(), request.size()); entity.setUploadedAt(Instant.now()); project.setUpdatedAt(Instant.now()); projects.save(project); return attachmentMapper.toDto(attachments.save(entity)); }
+    public AttachmentDto addAttachment(UUID projectId, CreateAttachmentRequest request) { Project project = project(projectId); Attachment entity = new Attachment(projectId, request.label(), request.url()); entity.setUploadedAt(Instant.now()); project.setUpdatedAt(Instant.now()); projects.save(project); return attachmentMapper.toDto(attachments.save(entity)); }
     @Override
     public void deleteMilestone(UUID projectId, UUID milestoneId) { project(projectId); Milestone entity = milestones.findById(milestoneId).filter(item -> item.getProjectId().equals(projectId)).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Milestone not found")); milestones.delete(entity); }
     @Override

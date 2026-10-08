@@ -7,6 +7,7 @@ import com.personalhub.api.mapper.ContactMapper;
 import com.personalhub.api.mapper.InteractionMapper;
 import com.personalhub.api.repository.ContactRepository;
 import com.personalhub.api.repository.InteractionRepository;
+import com.personalhub.api.repository.TaskRepository;
 import com.personalhub.api.service.ContactService;
 import com.personalhub.api.web.ApiException;
 import com.personalhub.api.dto.RequestModels;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ContactServiceImpl implements ContactService {
     private final ContactRepository contacts;
     private final InteractionRepository interactions;
+    private final TaskRepository tasks;
     private final ContactMapper contactMapper;
     private final InteractionMapper interactionMapper;
 
@@ -36,7 +38,7 @@ public class ContactServiceImpl implements ContactService {
     @Override
     public ContactDto update(UUID id, RequestModels.ContactPatch request) { Contact entity = contact(id); if (request.name() != null) entity.setName(request.name()); if (request.originContext() != null) entity.setOriginContext(request.originContext()); if (request.tags() != null) entity.setTags(request.tags()); if (request.pingIntervalDays() != null) entity.setPingIntervalDays(request.pingIntervalDays()); if (request.lastContact() != null) entity.setLastContact(request.lastContact()); if (request.notes() != null) entity.setNotes(request.notes()); return contactMapper.toDto(contacts.save(entity)); }
     @Override
-    public void delete(UUID id) { contact(id); interactions.deleteAll(interactions.findByContactIdOrderByDateDesc(id)); contacts.deleteById(id); }
+    public void delete(UUID id) { contact(id); tasks.findByContactId(id).forEach(task -> { task.setContactId(null); tasks.save(task); }); interactions.deleteByContactId(id); contacts.deleteById(id); }
     @Override @Transactional(readOnly = true)
     public List<InteractionDto> interactions(UUID id) { contact(id); return interactions.findByContactIdOrderByDateDesc(id).stream().map(interactionMapper::toDto).toList(); }
     @Override

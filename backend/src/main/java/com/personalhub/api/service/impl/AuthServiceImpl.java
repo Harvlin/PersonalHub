@@ -2,7 +2,6 @@ package com.personalhub.api.service.impl;
 
 import com.personalhub.api.dto.AuthUserDto;
 import com.personalhub.api.dto.LoginRequest;
-import com.personalhub.api.dto.RegisterRequest;
 import com.personalhub.api.entity.UserAccount;
 import com.personalhub.api.repository.UserAccountRepository;
 import com.personalhub.api.service.AuthService;
@@ -17,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +29,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthUserDto currentUser() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean authenticated = authentication != null && authentication.isAuthenticated() && !(authentication.getPrincipal() instanceof String principal && "anonymousUser".equals(principal));
+        boolean authenticated = authentication != null
+            && authentication.isAuthenticated()
+            && !(authentication.getPrincipal() instanceof String principal
+                && "anonymousUser".equals(principal));
         return new AuthUserDto(authenticated ? authentication.getName() : null, authenticated);
     }
 
@@ -39,31 +42,21 @@ public class AuthServiceImpl implements AuthService {
         boolean validConfiguredAccount = configuredUsername.equals(request.username())
             && !configuredPasswordHash.isBlank()
             && passwordEncoder.matches(request.password(), configuredPasswordHash);
-        boolean validDatabaseAccount = account.isPresent() && passwordEncoder.matches(request.password(), account.get().getPasswordHash());
+        boolean validDatabaseAccount = account.isPresent()
+            && passwordEncoder.matches(request.password(), account.get().getPasswordHash());
         if (!validConfiguredAccount && !validDatabaseAccount) {
-            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
         }
         String username = account.map(UserAccount::getUsername).orElse(configuredUsername);
-        var authentication = new UsernamePasswordAuthenticationToken(username, null, java.util.List.of(() -> "ROLE_USER"));
+        var authentication = new UsernamePasswordAuthenticationToken(
+            username, null, java.util.List.of(() -> "ROLE_USER"));
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
-        httpRequest.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-        return new AuthUserDto(username, true);
-    }
-
-    @Override
-    public AuthUserDto register(RegisterRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        String username = request.username().trim();
-        if (userAccountRepository.existsByUsername(username) || configuredUsername.equals(username)) {
-            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
-        }
-        userAccountRepository.save(new UserAccount(username, passwordEncoder.encode(request.password())));
-        var authentication = new UsernamePasswordAuthenticationToken(username, null, java.util.List.of(() -> "ROLE_USER"));
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
-        httpRequest.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+        // Fix session fixation: rotate session ID before attaching the security context
+        httpRequest.changeSessionId();
+        httpRequest.getSession(true).setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
         return new AuthUserDto(username, true);
     }
 }

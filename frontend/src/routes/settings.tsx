@@ -19,8 +19,10 @@ export const Route = createFileRoute("/settings")({
 function SettingsPage() {
   const store = useStore();
   const { toast } = useUI();
-  const [value, setValue] = useState(String(store.defaultPingInterval));
-  const [error, setError] = useState("");
+  const [pingValue, setPingValue] = useState(String(store.settings.default_ping_interval));
+  const [limitValue, setLimitValue] = useState(String(store.settings.active_project_limit));
+  const [pingError, setPingError] = useState("");
+  const [limitError, setLimitError] = useState("");
   const archived = store.projects.filter((p) => p.is_archived);
 
   return (
@@ -34,24 +36,52 @@ function SettingsPage() {
           </div>
           <div className="flex items-end gap-2 p-4">
             <div className="w-32">
-              <Field label="Days" error={error}>
-                <Input value={value} onChange={(e) => setValue(e.target.value)} inputMode="numeric" />
+              <Field label="Days" error={pingError}>
+                <Input value={pingValue} onChange={(e) => setPingValue(e.target.value)} inputMode="numeric" />
               </Field>
             </div>
             <Button
               variant="solid"
               onClick={() => {
-                const n = Number(value);
-                if (!n || n < 1) return setError("Enter a number of days");
-                store.setDefaultPingInterval(n);
-                setError("");
+                const n = Number(pingValue);
+                if (!n || n < 1) return setPingError("Enter a number of days");
+                void store.updateSettings({ default_ping_interval: n });
+                setPingError("");
                 toast(`Default ping interval set to ${n}d`);
               }}
             >
               Save
             </Button>
             <span className="mono pb-1.5 text-[11px] text-ink-muted">
-              currently {store.defaultPingInterval}d
+              currently {store.settings.default_ping_interval}d
+            </span>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="border-b border-border px-4 py-2.5">
+            <SectionLabel>Active project limit</SectionLabel>
+          </div>
+          <div className="flex items-end gap-2 p-4">
+            <div className="w-32">
+              <Field label="Limit" error={limitError}>
+                <Input value={limitValue} onChange={(e) => setLimitValue(e.target.value)} inputMode="numeric" />
+              </Field>
+            </div>
+            <Button
+              variant="solid"
+              onClick={() => {
+                const n = Number(limitValue);
+                if (!n || n < 1) return setLimitError("Enter a number");
+                void store.updateSettings({ active_project_limit: n });
+                setLimitError("");
+                toast(`Active project limit set to ${n}`);
+              }}
+            >
+              Save
+            </Button>
+            <span className="mono pb-1.5 text-[11px] text-ink-muted">
+              currently {store.settings.active_project_limit}
             </span>
           </div>
         </Card>
@@ -76,15 +106,6 @@ function SettingsPage() {
           </ul>
         </Card>
 
-        <Card>
-          <div className="border-b border-border px-4 py-2.5">
-            <SectionLabel>Theme</SectionLabel>
-          </div>
-          <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-[13px] text-ink-muted">E-Ink Paper (locked)</span>
-            <span className="mono text-[11px] text-ink-muted">no alternatives</span>
-          </div>
-        </Card>
       </div>
     </>
   );

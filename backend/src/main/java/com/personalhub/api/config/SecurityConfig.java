@@ -21,11 +21,39 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+/**
+ * Security configuration for the single-user Personal Hub.
+ *
+ * Auth model:
+ *  - Single user; credentials are set via PERSONAL_HUB_USERNAME and
+ *    PERSONAL_HUB_PASSWORD_HASH environment variables.
+ *  - Session-based auth with CSRF protection (SameSite cookie).
+ *  - Registration endpoint does NOT exist — this is intentional.
+ *
+ * Single-user data safety:
+ *  - ALL data APIs (/api/projects/**, /api/tasks/**, /api/contacts/**, etc.)
+ *    require authentication via `.anyRequest().authenticated()`.
+ *  - The schema has no user_id columns — there is no multi-tenant concept.
+ *    All rows in the database belong implicitly to the one logged-in user.
+ *  - An unauthenticated request to any data endpoint returns 401 before any
+ *    query executes.  No cross-user data leakage is possible.
+ *
+ *  Public endpoints (no auth needed):
+ *   GET  /api/auth/csrf   — fetch CSRF token for the login form
+ *   POST /api/auth/login  — authenticate
+ *   GET  /api/auth/me     — check current session (returns unauthenticated=false gracefully)
+ *   GET  /actuator/health — health probe (no sensitive data)
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, @Value("${server.servlet.session.cookie.same-site}") String sameSite, @Value("${server.servlet.session.cookie.secure}") boolean secureCookies) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            @Value("${server.servlet.session.cookie.same-site}") String sameSite,
+            @Value("${server.servlet.session.cookie.secure}") boolean secureCookies) throws Exception {
+
         CookieCsrfTokenRepository csrfTokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfTokens.setCookieCustomizer(cookie -> cookie.sameSite(sameSite).secure(secureCookies).path("/"));
         CsrfTokenRequestAttributeHandler csrfHandler = new CsrfTokenRequestAttributeHandler();
@@ -34,8 +62,9 @@ public class SecurityConfig {
         return http
             .csrf(csrf -> csrf
                 .csrfTokenRepository(csrfTokens)
-                .csrfTokenRequestHandler(csrfHandler)
-                .ignoringRequestMatchers("/api/auth/login"))
+                .csrfTokenRequestHandler(csrfHandler))
+                // No CSRF exclusions — the frontend always fetches the CSRF token
+                // via /api/auth/csrf before any mutating request including login.
             .cors(cors -> {})
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
@@ -47,7 +76,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint((request, response, exception) -> response.sendError(401, "Authentication required")))
+                .authenticationEntryPoint((request, response, exception) ->
+                    response.sendError(401, "Authentication required")))
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable())
             .logout(logout -> logout
@@ -63,9 +93,8 @@ public class SecurityConfig {
 
     @Bean
     DefaultCookieSerializer sessionCookieSerializer(
-        @Value("${server.servlet.session.cookie.same-site}") String sameSite,
-        @Value("${server.servlet.session.cookie.secure}") boolean secureCookies
-    ) {
+            @Value("${server.servlet.session.cookie.same-site}") String sameSite,
+            @Value("${server.servlet.session.cookie.secure}") boolean secureCookies) {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setSameSite(sameSite);
         serializer.setUseSecureCookie(secureCookies);
@@ -73,14 +102,15 @@ public class SecurityConfig {
         serializer.setUseHttpOnlyCookie(true);
         return serializer;
     }
-    
-        @Bean
-        InMemoryUserDetailsManager userDetailsService() { return new InMemoryUserDetailsManager(); }
+
+    @Bean
+    InMemoryUserDetailsManager userDetailsService() { return new InMemoryUserDetailsManager(); }
 
     @Bean
     CorsConfigurationSource corsConfigurationSource(@Value("${app.cors-origins}") String origins) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).filter(s -> !s.isBlank()).collect(Collectors.toList()));
+        configuration.setAllowedOrigins(Arrays.stream(origins.split(","))
+            .map(String::trim).filter(s -> !s.isBlank()).collect(Collectors.toList()));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Content-Type", "X-XSRF-TOKEN"));
         configuration.setExposedHeaders(List.of("Location"));

@@ -21,6 +21,7 @@ public final class RequestModels {
     public record ContactPatch(@Size(max = 160) String name, @Size(max = 500) String originContext, List<@Size(max = 80) String> tags, @Min(1) Integer pingIntervalDays, LocalDate lastContact, @Size(max = 20000) String notes) {}
     public record InteractionCreate(@NotNull LocalDate date, @NotBlank @Size(max = 10000) String note) {}
     public record ResourceCreate(@NotBlank @Size(max = 120) String label, @NotBlank @Size(max = 2000) String url) {}
-    public record AttachmentCreate(@NotBlank @Size(max = 255) String name, @NotBlank @Size(max = 80) String size) {}
+    public record ResourcePatch(@Size(max = 120) String label, @Size(max = 2000) String url) {}
+    public record AttachmentCreate(@NotBlank @Size(max = 255) String label, @NotBlank @Size(max = 2000) String url) {}
     public record SettingsPatch(@Min(1) int defaultPingInterval) {}
 }

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -17,7 +18,7 @@ public class TaskController {
     private final TaskService service;
     @GetMapping public List<TaskDto> list() { return service.findAll(); }
     @GetMapping("/{id}") public TaskDto get(@PathVariable UUID id) { return service.findById(id); }
-    @PostMapping public TaskDto create(@Valid @RequestBody CreateTaskRequest request) { return service.create(request); }
+    @PostMapping @ResponseStatus(HttpStatus.CREATED) public TaskDto create(@Valid @RequestBody CreateTaskRequest request) { return service.create(request); }
     @PatchMapping("/{id}") public TaskDto update(@PathVariable UUID id, @Valid @RequestBody RequestModels.TaskPatch request) { return service.update(id, request); }
     @DeleteMapping("/{id}") public void delete(@PathVariable UUID id) { service.delete(id); }
 }

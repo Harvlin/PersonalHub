@@ -8,4 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TaskRepository extends JpaRepository<Task, UUID> {
     List<Task> findAllByOrderByCreatedAtDesc();
     List<Task> findByProjectIdOrderByCreatedAtDesc(UUID projectId);
+    List<Task> findByContactId(UUID contactId);
 }

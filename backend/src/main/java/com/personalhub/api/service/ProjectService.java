@@ -24,6 +24,7 @@ public interface ProjectService {
     void deleteMilestone(UUID projectId, UUID milestoneId);
     List<ResourceDto> resources(UUID projectId);
     ResourceDto addResource(UUID projectId, CreateResourceRequest request);
+    ResourceDto updateResource(UUID projectId, UUID resourceId, RequestModels.ResourcePatch request);
     void deleteResource(UUID projectId, UUID resourceId);
     List<AttachmentDto> attachments(UUID projectId);
     AttachmentDto addAttachment(UUID projectId, CreateAttachmentRequest request);

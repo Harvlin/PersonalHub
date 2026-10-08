@@ -15,4 +15,5 @@ import lombok.Setter;
 public class UserSetting {
     @Id private String id = "default";
     @Min(1) @Column(nullable = false) private int defaultPingInterval = 21;
+    @Min(1) @Column(nullable = false) private int activeProjectLimit = 5;
 }

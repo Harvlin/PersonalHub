@@ -5,5 +5,6 @@ public enum Status {
     IN_PROGRESS,
     WAITING,
     BLOCKED,
-    DONE
+    DONE,
+    PASSIVE
 }

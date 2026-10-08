@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/contacts")
@@ -15,10 +16,10 @@ public class ContactController {
     private final ContactService service;
     @GetMapping public List<ContactDto> list() { return service.findAll(); }
     @GetMapping("/{id}") public ContactDto get(@PathVariable UUID id) { return service.findById(id); }
-    @PostMapping public ContactDto create(@Valid @RequestBody CreateContactRequest request) { return service.create(request); }
+    @PostMapping @ResponseStatus(HttpStatus.CREATED) public ContactDto create(@Valid @RequestBody CreateContactRequest request) { return service.create(request); }
     @PatchMapping("/{id}") public ContactDto update(@PathVariable UUID id, @Valid @RequestBody RequestModels.ContactPatch request) { return service.update(id, request); }
     @DeleteMapping("/{id}") public void delete(@PathVariable UUID id) { service.delete(id); }
     @GetMapping("/{id}/interactions") public List<InteractionDto> interactions(@PathVariable UUID id) { return service.interactions(id); }
-    @PostMapping("/{id}/interactions") public InteractionDto addInteraction(@PathVariable UUID id, @Valid @RequestBody CreateInteractionRequest request) { return service.addInteraction(id, request); }
+    @PostMapping("/{id}/interactions") @ResponseStatus(HttpStatus.CREATED) public InteractionDto addInteraction(@PathVariable UUID id, @Valid @RequestBody CreateInteractionRequest request) { return service.addInteraction(id, request); }
     @DeleteMapping("/{contactId}/interactions/{interactionId}") public void deleteInteraction(@PathVariable UUID contactId, @PathVariable UUID interactionId) { service.deleteInteraction(contactId, interactionId); }
 }

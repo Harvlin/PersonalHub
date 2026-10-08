@@ -89,10 +89,14 @@ function ContactDetail() {
                 <Button
                   variant="solid"
                   onClick={() => {
+                    const parsedInterval = parseInt(interval, 10);
+                    if (!Number.isFinite(parsedInterval) || parsedInterval < 1) {
+                      return;
+                    }
                     store.updateContact(contact.id, {
                       origin_context: origin,
                       tags: tags.split(",").map((t) => t.trim().replace(/^#/, "")).filter(Boolean),
-                      ping_interval_days: Number(interval) || contact.ping_interval_days,
+                      ping_interval_days: parsedInterval,
                     });
                     setEditing(false);
                   }}

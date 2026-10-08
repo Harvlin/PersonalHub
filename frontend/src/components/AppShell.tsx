@@ -6,6 +6,7 @@ import { StatusGlyph } from "@/components/StatusGlyph";
 import { TODAY, initials, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "@/lib/theme";
 
 /* ---------------- UI context (quick add + palette) ---------------- */
 
@@ -22,6 +23,7 @@ type UICtx = {
   openQuickAdd: (prefill?: QuickAddPrefill) => void;
   openPalette: () => void;
   toast: (msg: string) => void;
+  ensureCapacity: (currentActive: number, limit: number, onSuccess: () => void) => void;
 };
 
 const UIContext = createContext<UICtx | null>(null);
@@ -77,11 +79,14 @@ const NAV = [
 ];
 
 function Sidebar({ onSearch }: { onSearch: () => void }) {
-  const { projects } = useStore();
+  const store = useStore();
+  const { projects } = store;
   const { username, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [popover, setPopover] = useState(false);
-  const active = projects.filter((p) => !p.is_archived);
+  const active = projects.filter((p) => !p.is_archived && p.status !== "done" && p.status !== "passive");
+  const limit = store.settings.active_project_limit;
 
   return (
     <aside className="hidden w-[240px] shrink-0 flex-col border-r border-border bg-paper md:flex">
@@ -125,7 +130,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
       <div className="mt-6 px-4">
         <div className="micro-label">Projects</div>
         <div className="mt-2 flex flex-col gap-1.5">
-          {active.slice(0, 3).map((p) => (
+          {active.slice(0, limit).map((p) => (
             <Link
               key={p.id}
               to="/projects/$id"
@@ -145,11 +150,11 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
       <div className="mt-auto p-3">
         <div className="hairline rounded-md p-3">
           <div className="micro-label">Active Projects</div>
-          <div className="mono mt-1 text-[13px] font-medium">{active.length}/3</div>
+          <div className="mono mt-1 text-[13px] font-medium">{active.length}/{limit}</div>
           <div className="mt-2 h-1 w-full bg-accent">
             <div
               className="h-1 bg-ink"
-              style={{ width: `${Math.min(100, (active.length / 3) * 100)}%` }}
+              style={{ width: `${Math.min(100, (active.length / limit) * 100)}%` }}
             />
           </div>
         </div>
@@ -166,6 +171,15 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
               </Link>
               <button
                 onClick={() => {
+                  toggleTheme();
+                  setPopover(false);
+                }}
+                className="block w-full rounded-[3px] px-2 py-1.5 text-left text-[12.5px] text-ink-secondary hover:bg-accent hover:text-ink"
+              >
+                Toggle Theme ({theme === "light" ? "Dark" : "Light"})
+              </button>
+              <button
+                onClick={() => {
                   void logout();
                   setPopover(false);
                 }}
@@ -180,7 +194,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
             className="focus-ink flex w-full items-center gap-2 rounded-[3px] border border-border px-2 py-1.5"
           >
             <span className="hairline mono flex h-6 w-6 items-center justify-center rounded-[3px] text-[10px]">
-              HM
+              {initials(username ?? "?")}
             </span>
             <span className="text-[12.5px] font-medium">{username ?? "Personal"}</span>
             <span className="mono ml-auto text-[11px] text-ink-muted">private</span>
@@ -193,6 +207,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
 
 function MobileNav({ onSearch, onClose }: { onSearch: () => void; onClose: () => void }) {
   const { username, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
@@ -216,11 +231,52 @@ function MobileNav({ onSearch, onClose }: { onSearch: () => void; onClose: () =>
         <button onClick={() => { onClose(); onSearch(); }} className="focus-ink flex w-full items-center gap-2 border-t border-border px-3 py-3 text-left text-[13px] text-ink-secondary">
           <Search size={13} /> Search
         </button>
+        <button onClick={() => { onClose(); toggleTheme(); }} className="focus-ink flex w-full items-center gap-2 border-t border-border px-3 py-3 text-left text-[13px] text-ink-secondary">
+          Toggle Theme
+        </button>
         <button onClick={() => void logout()} className="focus-ink w-full border-t border-border px-3 py-3 text-left text-[13px] text-ink-secondary">
           Sign out <span className="mono ml-1 text-[10px] text-ink-muted">({username ?? "Personal"})</span>
         </button>
       </nav>
     </div>
+  );
+}
+
+/* ---------------- Swap Project modal ---------------- */
+
+function SwapProjectModal({
+  onSwap,
+  onCancel,
+}: {
+  onSwap: (projectId: string) => void;
+  onCancel: () => void;
+}) {
+  const store = useStore();
+  const active = store.projects.filter((p) => !p.is_archived && p.status !== "done" && p.status !== "passive");
+  
+  return (
+    <Modal open onClose={onCancel} title="Active Project Limit Reached" grain>
+      <div className="p-4 space-y-4">
+        <p className="text-[13px] text-ink-secondary">
+          You are at your active project limit. Select an active project to move to <strong>PASSIVE</strong>.
+        </p>
+        <div className="flex flex-col gap-2">
+          {active.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                store.updateProject(p.id, { status: "passive" });
+                onSwap(p.id);
+              }}
+              className="flex items-center gap-3 rounded-md border border-border p-3 text-left hover:bg-accent focus:bg-accent"
+            >
+              <span className="text-[13px] font-medium">{p.name}</span>
+              <span className="mono ml-auto text-[11px] text-ink-muted">PASSIVE</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -237,6 +293,7 @@ function QuickAdd({
 }) {
   const store = useStore();
   const navigate = useNavigate();
+  const ui = useUI();
   const [type, setType] = useState<QuickAddType>(prefill.type ?? "task");
   const [error, setError] = useState("");
 
@@ -257,7 +314,7 @@ function QuickAdd({
   const [name, setName] = useState("");
   const [origin, setOrigin] = useState("");
   const [tags, setTags] = useState("");
-  const [interval, setInterval] = useState(String(store.defaultPingInterval));
+  const [interval, setInterval] = useState(String(store.settings.default_ping_interval));
 
   const submit = async () => {
     if (type === "task") {
@@ -276,9 +333,14 @@ function QuickAdd({
     }
     if (type === "project") {
       if (!projectName.trim()) return setError("Project name is required");
-      const p = await store.addProject(projectName.trim(), projectDesc);
-      onClose();
-      navigate({ to: "/projects/$id", params: { id: p.id } });
+      const { projects, settings } = store;
+      const active = projects.filter((p) => !p.is_archived && p.status !== "done" && p.status !== "passive");
+      
+      ui.ensureCapacity(active.length, settings.active_project_limit, async () => {
+        const p = await store.addProject(projectName.trim(), projectDesc);
+        onClose();
+        navigate({ to: "/projects/$id", params: { id: p.id } });
+      });
       return;
     }
     if (!name.trim()) return setError("Contact name is required");
@@ -289,7 +351,7 @@ function QuickAdd({
         .split(",")
         .map((t) => t.trim().replace(/^#/, ""))
         .filter(Boolean),
-      ping_interval_days: Number(interval) || store.defaultPingInterval,
+      ping_interval_days: parseInt(interval, 10) || store.settings.default_ping_interval,
     });
     onClose();
     navigate({ to: "/contacts/$id", params: { id: c.id } });
@@ -515,7 +577,17 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const value = useMemo(() => ({ openQuickAdd, openPalette, toast }), [openQuickAdd, openPalette, toast]);
+  const [capacityAction, setCapacityAction] = useState<(() => void) | null>(null);
+
+  const ensureCapacity = useCallback((currentActive: number, limit: number, onSuccess: () => void) => {
+    if (currentActive >= limit) {
+      setCapacityAction(() => onSuccess);
+    } else {
+      onSuccess();
+    }
+  }, []);
+
+  const value = useMemo(() => ({ openQuickAdd, openPalette, toast, ensureCapacity }), [openQuickAdd, openPalette, toast, ensureCapacity]);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isLanding = pathname === "/";
   const auth = useAuth();
@@ -529,7 +601,7 @@ export function AppShell() {
 
   return (
     <UIContext.Provider value={value}>
-      <div className={cn("flex min-h-screen w-full min-w-0 overflow-x-hidden", isLanding ? "bg-[#f4f4f2]" : "bg-background")}>
+      <div className="flex min-h-screen w-full min-w-0 overflow-x-hidden bg-background">
         {!isLanding ? <Sidebar onSearch={openPalette} /> : null}
         <main className="flex min-w-0 flex-1 flex-col">
           {!isLanding ? (
@@ -543,6 +615,15 @@ export function AppShell() {
       </div>
       {quickAdd ? <QuickAdd prefill={quickAdd} onClose={() => setQuickAdd(null)} toast={toast} /> : null}
       {palette ? <Palette onClose={() => setPalette(false)} /> : null}
+      {capacityAction ? (
+        <SwapProjectModal 
+          onCancel={() => setCapacityAction(null)} 
+          onSwap={(swappedId) => {
+            setCapacityAction(null);
+            capacityAction();
+          }} 
+        />
+      ) : null}
       {toastMsg ? (
         <div className="hairline mono fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-md bg-paper px-3 py-2 text-[12px]">
           ✓ {toastMsg}

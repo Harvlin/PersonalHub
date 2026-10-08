@@ -5,4 +5,4 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public record TaskDto(UUID id, String title, String description, Status status, String blockedReason, UUID projectId, UUID milestoneId, LocalDate due, Instant createdAt, UUID contactId) {}
+public record TaskDto(UUID id, String title, String description, Status status, String blockedReason, UUID projectId, UUID milestoneId, LocalDate due, Instant createdAt, Instant completedAt, UUID contactId) {}

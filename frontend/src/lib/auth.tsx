@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 const API_URL = import.meta.env["VITE_API_URL"] ?? "";
 
 type AuthUser = { username: string | null; authenticated: boolean };
-type AuthContextValue = AuthUser & { loading: boolean; login: (username: string, password: string) => Promise<void>; register: (username: string, password: string) => Promise<void>; logout: () => Promise<void> };
+type AuthContextValue = AuthUser & { loading: boolean; login: (username: string, password: string) => Promise<void>; logout: () => Promise<void> };
 const AuthContext = createContext<AuthContextValue | null>(null);
 let csrfToken = "";
 
@@ -54,11 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login: async (username, password) => {
       await ensureCsrfToken();
       const response = await request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
-      setUser(await response.json() as AuthUser);
-    },
-    register: async (username, password) => {
-      await ensureCsrfToken();
-      const response = await request("/api/auth/register", { method: "POST", body: JSON.stringify({ username, password }) });
       setUser(await response.json() as AuthUser);
     },
     logout: async () => {

@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -30,8 +31,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException exception) {
         String message = "Invalid request payload";
-        if (exception.getMessage() != null && exception.getMessage().contains("Status")) {
-            message = "status must be one of TODO, IN_PROGRESS, WAITING, BLOCKED, DONE";
+        Throwable cause = exception.getCause();
+        if (cause instanceof InvalidFormatException ife
+            && ife.getTargetType() != null
+            && ife.getTargetType().isEnum()) {
+            message = "Invalid enum value '" + ife.getValue() + "'. Allowed values: " + java.util.Arrays.toString(ife.getTargetType().getEnumConstants());
         }
         return ResponseEntity.badRequest().body(Map.of(
             "timestamp", Instant.now(), "status", 400, "error", "Bad Request", "message", message));

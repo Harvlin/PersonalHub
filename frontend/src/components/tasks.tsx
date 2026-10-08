@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useUI } from "@/components/AppShell";
 import { Button, Drawer, Field, Input, Textarea } from "@/components/ui-kit";
 import { StatusGlyph } from "@/components/StatusGlyph";
 import {
@@ -138,6 +139,7 @@ export function TaskRow({
 
 export function TaskDrawer({ task, onClose }: { task: Task | null; onClose: () => void }) {
   const { projects, milestones, updateTask, deleteTask } = useStore();
+  const ui = useUI();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -284,9 +286,13 @@ export function TaskDrawer({ task, onClose }: { task: Task | null; onClose: () =
             <Button onClick={startEdit}>Edit</Button>
             <Button
               variant="danger"
-              onClick={() => {
-                deleteTask(task.id);
-                onClose();
+              onClick={async () => {
+                try {
+                  await deleteTask(task.id);
+                  onClose();
+                } catch (e: any) {
+                  ui.toast(e.message || "Failed to delete task");
+                }
               }}
             >
               Delete

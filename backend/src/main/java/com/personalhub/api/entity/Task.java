@@ -32,6 +32,7 @@ public class Task {
     @NotNull @Column(nullable = false) private UUID milestoneId;
     private LocalDate due;
     @Column(nullable = false, updatable = false) private Instant createdAt;
+    private Instant completedAt;
     private UUID contactId;
 
     public Task(String title, String description, UUID projectId, UUID milestoneId, LocalDate due, UUID contactId) {

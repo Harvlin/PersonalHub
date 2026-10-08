@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader, useUI } from "@/components/AppShell";
 import { Button, Card, EmptyState, Field, Input, Modal, SectionLabel, Segmented, Textarea } from "@/components/ui-kit";
+import { CircleAlert, ClockAlert } from "lucide-react";
 import { StatusGlyph } from "@/components/StatusGlyph";
 import { TaskDrawer, TaskRow } from "@/components/tasks";
 import {
@@ -42,14 +43,29 @@ function Dashboard() {
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [logFor, setLogFor] = useState<string | null>(null);
 
-  const inRange = (due: string | null) => {
-    if (!due) return false;
+  const isOverdue = (due: string | null) => {
+    return due && daysBetween(TODAY, due) < 0;
+  };
+
+  const needsAttentionTasks = store.tasks.filter(
+    (t) => t.status !== "done" && (t.status === "blocked" || isOverdue(t.due))
+  );
+
+  const needsAttentionPings = store.contacts
+    .map((c) => ({ contact: c, ping: pingInfo(c) }))
+    .filter((x) => x.ping.overdue)
+    .sort((a, b) => b.ping.overdueBy - a.ping.overdueBy);
+
+  const hasNeedsAttention = needsAttentionTasks.length > 0 || needsAttentionPings.length > 0;
+
+  const inRange = (due: string | null, status: string) => {
+    if (!due || status === "blocked" || isOverdue(due)) return false;
     const diff = daysBetween(TODAY, due);
-    return range === "today" ? diff <= 0 : diff <= 7;
+    return range === "today" ? diff === 0 : diff >= 0 && diff <= 7;
   };
 
   const visibleTasks = store.tasks
-    .filter((t) => inRange(t.due))
+    .filter((t) => inRange(t.due, t.status))
     .filter((t) => (hideDone ? t.status !== "done" : true));
 
   const grouped = useMemo(() => {
@@ -63,7 +79,7 @@ function Dashboard() {
 
   const pings = store.contacts
     .map((c) => ({ contact: c, ping: pingInfo(c) }))
-    .filter((x) => (range === "today" ? x.ping.overdue || x.ping.overdueBy > -3 : x.ping.overdueBy > -7))
+    .filter((x) => !x.ping.overdue && (range === "today" ? x.ping.overdueBy > -3 : x.ping.overdueBy > -7))
     .sort((a, b) => b.ping.overdueBy - a.ping.overdueBy);
 
   const recent = store.interactions.slice(0, 4);
@@ -72,7 +88,7 @@ function Dashboard() {
     return Array.from({ length: 14 }, (_, i) => {
       const day = 13 - i;
       const done = store.tasks.filter(
-        (t) => t.status === "done" && t.due && daysBetween(t.due, TODAY) === day,
+        (t) => t.status === "done" && t.completed && daysBetween(t.completed, TODAY) === day,
       ).length;
       return done;
     });
@@ -97,12 +113,66 @@ function Dashboard() {
       </PageHeader>
 
       <div className="space-y-5 p-5">
+        {hasNeedsAttention ? (
+          <Card className="border-l-2 border-l-signal">
+            <div className="flex items-center gap-2 border-b border-border px-4 py-2.5 text-signal">
+              <CircleAlert size={14} />
+              <SectionLabel className="text-signal">Needs Attention</SectionLabel>
+            </div>
+            <ul className="divide-y divide-border">
+              {needsAttentionTasks.map((t) => {
+                const ms = store.milestones.find((m) => m.id === t.milestone_id);
+                return (
+                  <li key={t.id} className="flex items-center gap-2.5 px-4 py-2.5">
+                    <StatusGlyph status={t.status} />
+                    <button
+                      onClick={() => setDrawerTaskId(t.id)}
+                      className="focus-ink truncate text-left text-[13px] underline decoration-border underline-offset-2 hover:decoration-ink"
+                    >
+                      {t.title}
+                    </button>
+                    {ms ? (
+                      <Link
+                        to="/projects/$id"
+                        params={{ id: t.project_id }}
+                        className="mono hairline shrink-0 rounded-full px-2 py-0.5 text-[10.5px] text-ink-secondary hover:text-ink"
+                      >
+                        {ms.name}
+                      </Link>
+                    ) : null}
+                    <span className="mono ml-auto shrink-0 text-[11px] text-signal font-medium uppercase">
+                      {t.status === "blocked" ? "Blocked" : "Overdue"}
+                    </span>
+                  </li>
+                );
+              })}
+              {needsAttentionPings.map(({ contact, ping }) => (
+                <li key={contact.id} className="flex items-center gap-2.5 px-4 py-2.5">
+                  <span className="hairline mono flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] text-[10px] text-ink-muted">
+                    {initials(contact.name)}
+                  </span>
+                  <Link
+                    to="/contacts/$id"
+                    params={{ id: contact.id }}
+                    className="truncate text-[13px] underline decoration-border underline-offset-2 hover:decoration-ink"
+                  >
+                    {contact.name}
+                  </Link>
+                  <span className="mono ml-auto shrink-0 text-[11px] text-signal font-medium uppercase">
+                    Overdue by {ping.overdueBy}d
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+
         {/* HERO */}
         <Card grain className="grid gap-px md:grid-cols-2">
           <div className="p-5">
             <SectionLabel>Due {range === "today" ? "Today" : "This Week"}</SectionLabel>
             <ul className="mt-3 space-y-2.5">
-              {visibleTasks.filter((t) => t.status !== "done").slice(0, 5).map((t) => {
+              {visibleTasks.slice(0, 5).map((t) => {
                 const ms = store.milestones.find((m) => m.id === t.milestone_id);
                 return (
                   <li key={t.id} className="flex items-center gap-2.5">
@@ -126,7 +196,7 @@ function Dashboard() {
                   </li>
                 );
               })}
-              {visibleTasks.filter((t) => t.status !== "done").length === 0 ? (
+              {visibleTasks.length === 0 ? (
                 <EmptyState
                   message="Nothing due — the page is clear."
                   actionLabel="Add a task"
@@ -151,9 +221,7 @@ function Dashboard() {
                   >
                     {contact.name}
                   </Link>
-                  <span
-                    className={`mono shrink-0 text-[11px] ${ping.overdue ? "text-signal" : "text-ink-muted"}`}
-                  >
+                  <span className="mono shrink-0 text-[11px] text-ink-muted">
                     last contact {ping.since}d ago
                   </span>
                   <Button className="ml-auto shrink-0" onClick={() => setLogFor(contact.id)}>

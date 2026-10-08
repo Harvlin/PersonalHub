@@ -17,5 +17,5 @@ public class SettingsServiceImpl implements SettingsService {
     private final UserSettingRepository settings;
     private final SettingsMapper mapper;
     @Override public SettingsDto get() { return mapper.toDto(settings.findById("default").orElseGet(() -> settings.save(new UserSetting()))); }
-    @Override public SettingsDto update(UpdateSettingsRequest request) { UserSetting entity = settings.findById("default").orElseGet(UserSetting::new); entity.setDefaultPingInterval(request.defaultPingInterval()); return mapper.toDto(settings.save(entity)); }
+    @Override public SettingsDto update(UpdateSettingsRequest request) { UserSetting entity = settings.findById("default").orElseGet(UserSetting::new); if (request.defaultPingInterval() != null) entity.setDefaultPingInterval(request.defaultPingInterval()); if (request.activeProjectLimit() != null) entity.setActiveProjectLimit(request.activeProjectLimit()); return mapper.toDto(settings.save(entity)); }
 }

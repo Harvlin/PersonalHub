@@ -9,7 +9,7 @@ import {
 } from "react";
 import { ensureCsrfToken, useAuth } from "@/lib/auth";
 
-export type Status = "todo" | "in_progress" | "waiting" | "blocked" | "done";
+export type Status = "todo" | "in_progress" | "waiting" | "blocked" | "done" | "passive";
 
 export type Task = {
   id: string;
@@ -21,6 +21,7 @@ export type Task = {
   milestone_id: string;
   due: string | null; // ISO date
   created: string;
+  completed: string | null;
   contact_id?: string | undefined;
 };
 
@@ -52,8 +53,8 @@ export type Resource = {
 export type Attachment = {
   id: string;
   project_id: string;
-  name: string;
-  size: string;
+  label: string;
+  url: string;
   uploaded: string;
 };
 
@@ -74,7 +75,7 @@ export type Contact = {
   notes?: string | undefined;
 };
 
-const STATUSES: Status[] = ["todo", "in_progress", "waiting", "blocked", "done"];
+const STATUSES: Status[] = ["todo", "in_progress", "waiting", "blocked", "done", "passive"];
 const asText = (value: unknown, fallback = "") => typeof value === "string" ? value : fallback;
 const asStatus = (value: unknown): Status => {
   if (typeof value === "string") {
@@ -117,264 +118,8 @@ export function initials(name: string) {
     .toUpperCase();
 }
 
-let counter = 100;
-const uid = (p: string) => `${p}_${++counter}`;
 
-const seedProjects: Project[] = [
-  {
-    id: "kortex",
-    name: "Kortex",
-    description:
-      "Personal knowledge graph with **bi-directional links**.\n\nPhase two focuses on the sync engine and offline-first storage.",
-    status: "in_progress",
-    is_archived: false,
-    created: daysAgo(96),
-    updated: daysAgo(1),
-  },
-  {
-    id: "atlas",
-    name: "Atlas Field Notes",
-    description:
-      "Mobile capture app for field research.\n\nCurrently blocked on the *API key rotation* from the partner team.",
-    status: "blocked",
-    is_archived: false,
-    created: daysAgo(58),
-    updated: daysAgo(3),
-  },
-  {
-    id: "ledger",
-    name: "Ledger",
-    description: "Plain-text accounting front-end. Nearly shipped.",
-    status: "in_progress",
-    is_archived: false,
-    created: daysAgo(140),
-    updated: daysAgo(6),
-  },
-  {
-    id: "quill",
-    name: "Quill",
-    description: "Static site generator experiment. Shelved for now.",
-    status: "waiting",
-    is_archived: true,
-    created: daysAgo(310),
-    updated: daysAgo(120),
-  },
-];
-
-const seedMilestones: Milestone[] = [
-  { id: "m_sync", project_id: "kortex", name: "Sync Engine", status: "in_progress" },
-  { id: "m_editor", project_id: "kortex", name: "Editor Polish", status: "todo" },
-  { id: "m_launch", project_id: "kortex", name: "Public Beta", status: "todo" },
-  { id: "m_capture", project_id: "atlas", name: "Capture Flow", status: "blocked" },
-  { id: "m_offline", project_id: "atlas", name: "Offline Cache", status: "in_progress" },
-  { id: "m_import", project_id: "ledger", name: "CSV Import", status: "done" },
-  { id: "m_report", project_id: "ledger", name: "Reporting", status: "in_progress" },
-  { id: "m_seo", project_id: "quill", name: "Theme System", status: "waiting" },
-];
-
-const seedTasks: Task[] = [
-  {
-    id: "t1",
-    title: "Resolve merge conflicts in CRDT layer",
-    description: "Three-way merge is dropping tombstones on reconnect.",
-    status: "in_progress",
-    project_id: "kortex",
-    milestone_id: "m_sync",
-    due: TODAY,
-    created: daysAgo(5),
-  },
-  {
-    id: "t2",
-    title: "Write sync conflict test matrix",
-    description: "Cover offline→online, two-device, and clock skew cases.",
-    status: "todo",
-    project_id: "kortex",
-    milestone_id: "m_sync",
-    due: TODAY,
-    created: daysAgo(2),
-  },
-  {
-    id: "t3",
-    title: "Ship keyboard shortcut sheet",
-    description: "Overlay listing all editor bindings.",
-    status: "todo",
-    project_id: "kortex",
-    milestone_id: "m_editor",
-    due: daysAhead(4),
-    created: daysAgo(9),
-  },
-  {
-    id: "t4",
-    title: "Draft beta invite copy",
-    description: "Short, plain, no marketing voice.",
-    status: "waiting",
-    project_id: "kortex",
-    milestone_id: "m_launch",
-    due: daysAhead(6),
-    created: daysAgo(12),
-  },
-  {
-    id: "t5",
-    title: "Rotate partner API credentials",
-    description: "Waiting on partner security review before we can proceed.",
-    status: "blocked",
-    blocked_reason: "Partner security review not scheduled yet",
-    project_id: "atlas",
-    milestone_id: "m_capture",
-    due: TODAY,
-    created: daysAgo(18),
-  },
-  {
-    id: "t6",
-    title: "Cache photo uploads in IndexedDB",
-    description: "Queue uploads while offline and flush on reconnect.",
-    status: "in_progress",
-    project_id: "atlas",
-    milestone_id: "m_offline",
-    due: daysAhead(2),
-    created: daysAgo(7),
-  },
-  {
-    id: "t7",
-    title: "Reconcile duplicate ledger entries",
-    description: "Dedupe by hash of date+amount+payee.",
-    status: "todo",
-    project_id: "ledger",
-    milestone_id: "m_report",
-    due: TODAY,
-    created: daysAgo(3),
-  },
-  {
-    id: "t8",
-    title: "Monthly summary view",
-    description: "Stepped bar chart of spend per category.",
-    status: "done",
-    project_id: "ledger",
-    milestone_id: "m_report",
-    due: daysAgo(2),
-    created: daysAgo(20),
-  },
-  {
-    id: "t9",
-    title: "CSV column mapper",
-    description: "Map arbitrary bank exports onto the internal schema.",
-    status: "done",
-    project_id: "ledger",
-    milestone_id: "m_import",
-    due: daysAgo(11),
-    created: daysAgo(40),
-  },
-];
-
-const seedContacts: Contact[] = [
-  {
-    id: "c_ren",
-    name: "Ren Alvarez",
-    origin_context: "informatics class",
-    tags: ["informatics-class", "collab"],
-    ping_interval_days: 14,
-    last_contact: daysAgo(21),
-  },
-  {
-    id: "c_mira",
-    name: "Mira Sund",
-    origin_context: "freelance client, Ledger rollout",
-    tags: ["client"],
-    ping_interval_days: 7,
-    last_contact: daysAgo(9),
-  },
-  {
-    id: "c_tobi",
-    name: "Tobi Nkemdi",
-    origin_context: "open-source contributor on Kortex",
-    tags: ["oss", "collab"],
-    ping_interval_days: 30,
-    last_contact: daysAgo(12),
-  },
-  {
-    id: "c_hana",
-    name: "Hana Iwase",
-    origin_context: "conference hallway track",
-    tags: ["network"],
-    ping_interval_days: 60,
-    last_contact: daysAgo(58),
-  },
-];
-
-const seedInteractions: Interaction[] = [
-  {
-    id: "i1",
-    contact_id: "c_mira",
-    date: daysAgo(9),
-    note: "Walked through the CSV import flow; she wants a category rules editor.",
-  },
-  {
-    id: "i2",
-    contact_id: "c_tobi",
-    date: daysAgo(12),
-    note: "He offered to take the IndexedDB caching PR if we scope it.",
-  },
-  {
-    id: "i3",
-    contact_id: "c_ren",
-    date: daysAgo(21),
-    note: "Discussed co-writing the sync engine paper for the seminar.",
-  },
-  {
-    id: "i4",
-    contact_id: "c_hana",
-    date: daysAgo(58),
-    note: "Swapped notes on offline-first architectures after her talk.",
-  },
-];
-
-const seedResources: Resource[] = [
-  {
-    id: "r1",
-    project_id: "kortex",
-    label: "repo",
-    url: "https://github.com/harvlin/kortex",
-    added: daysAgo(90),
-  },
-  {
-    id: "r2",
-    project_id: "kortex",
-    label: "design",
-    url: "https://figma.com/file/kortex-editor",
-    added: daysAgo(44),
-  },
-  {
-    id: "r3",
-    project_id: "atlas",
-    label: "api docs",
-    url: "https://docs.partner.dev/field-api",
-    added: daysAgo(30),
-  },
-  {
-    id: "r4",
-    project_id: "ledger",
-    label: "repo",
-    url: "https://github.com/harvlin/ledger",
-    added: daysAgo(130),
-  },
-];
-
-const seedAttachments: Attachment[] = [
-  {
-    id: "a1",
-    project_id: "kortex",
-    name: "sync-protocol-v3.pdf",
-    size: "412 KB",
-    uploaded: daysAgo(14),
-  },
-  {
-    id: "a2",
-    project_id: "atlas",
-    name: "field-notes-schema.json",
-    size: "18 KB",
-    uploaded: daysAgo(21),
-  },
-];
+const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 8)}`;
 
 type State = {
   projects: Project[];
@@ -384,7 +129,10 @@ type State = {
   interactions: Interaction[];
   resources: Resource[];
   attachments: Attachment[];
-  defaultPingInterval: number;
+  settings: {
+    default_ping_interval: number;
+    active_project_limit: number;
+  };
 };
 
 type Store = State & {
@@ -410,8 +158,8 @@ type Store = State & {
   updateContact: (id: string, patch: Partial<Contact>) => Promise<void>;
   logInteraction: (contactId: string, note: string, date: string) => Promise<void>;
   addResource: (projectId: string, label: string, url: string) => Promise<void>;
-  addAttachment: (projectId: string, name: string, size: string) => Promise<void>;
-  setDefaultPingInterval: (n: number) => Promise<void>;
+  addAttachment: (projectId: string, label: string, url: string) => Promise<void>;
+  updateSettings: (patch: Partial<State["settings"]>) => Promise<void>;
 };
 
 const StoreContext = createContext<Store | null>(null);
@@ -439,28 +187,31 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
 type ApiWorkspace = {
   projects: Array<{ id: string; name: string; description?: string; status: Status; archived: boolean; createdAt: string; updatedAt: string }>;
   milestones: Array<{ id: string; projectId: string; name: string; status: Status }>;
-  tasks: Array<{ id: string; title: string; description?: string; status: Status; blockedReason?: string; projectId: string; milestoneId: string; due: string | null; createdAt: string; contactId?: string }>;
+  tasks: Array<{ id: string; title: string; description?: string; status: Status; blockedReason?: string; projectId: string; milestoneId: string; due: string | null; createdAt: string; completedAt: string | null; contactId?: string }>;
   contacts: Array<{ id: string; name: string; originContext?: string; tags: string[]; pingIntervalDays: number; lastContact?: string; notes?: string }>;
   interactions: Array<{ id: string; contactId: string; date: string; note: string }>;
   resources: Array<{ id: string; projectId: string; label: string; url: string; addedAt: string }>;
-  attachments: Array<{ id: string; projectId: string; name: string; size: string; uploadedAt: string }>;
-  settings: { defaultPingInterval: number };
+  attachments: Array<{ id: string; projectId: string; label: string; url: string; uploadedAt: string }>;
+  settings: { defaultPingInterval: number; activeProjectLimit: number };
 };
 
 const mapWorkspace = (data: ApiWorkspace): State => ({
   projects: (data.projects ?? []).filter(Boolean).map((p) => ({ id: asText(p.id, uid("project")), name: asText(p.name, "Untitled project"), description: asText(p.description), status: asStatus(p.status), is_archived: Boolean(p.archived), created: asDate(p.createdAt), updated: asDate(p.updatedAt) })),
   milestones: (data.milestones ?? []).filter(Boolean).map((m) => ({ id: asText(m.id, uid("milestone")), project_id: asText(m.projectId), name: asText(m.name, "Untitled milestone"), status: asStatus(m.status) })),
-  tasks: (data.tasks ?? []).filter(Boolean).map((t) => ({ id: asText(t.id, uid("task")), title: asText(t.title, "Untitled task"), description: asText(t.description), status: asStatus(t.status), blocked_reason: asText(t.blockedReason) || undefined, project_id: asText(t.projectId), milestone_id: asText(t.milestoneId), due: typeof t.due === "string" ? t.due.slice(0, 10) : null, created: asDate(typeof t.createdAt === "string" ? t.createdAt.slice(0, 10) : t.createdAt), contact_id: asText(t.contactId) || undefined })),
+  tasks: (data.tasks ?? []).filter(Boolean).map((t) => ({ id: asText(t.id, uid("task")), title: asText(t.title, "Untitled task"), description: asText(t.description), status: asStatus(t.status), blocked_reason: asText(t.blockedReason) || undefined, project_id: asText(t.projectId), milestone_id: asText(t.milestoneId), due: typeof t.due === "string" ? t.due.slice(0, 10) : null, created: asDate(typeof t.createdAt === "string" ? t.createdAt.slice(0, 10) : t.createdAt), completed: typeof t.completedAt === "string" ? t.completedAt.slice(0, 10) : null, contact_id: asText(t.contactId) || undefined })),
   contacts: (data.contacts ?? []).filter(Boolean).map((c) => ({ id: asText(c.id, uid("contact")), name: asText(c.name, "Unnamed contact"), origin_context: asText(c.originContext), tags: Array.isArray(c.tags) ? c.tags.filter((tag): tag is string => typeof tag === "string") : [], ping_interval_days: Number.isFinite(c.pingIntervalDays) ? c.pingIntervalDays : 21, last_contact: asDate(c.lastContact), notes: asText(c.notes) || undefined })),
   interactions: (data.interactions ?? []).filter(Boolean).map((i) => ({ id: asText(i.id, uid("interaction")), contact_id: asText(i.contactId), date: asDate(i.date), note: asText(i.note) })),
   resources: (data.resources ?? []).filter(Boolean).map((r) => ({ id: asText(r.id, uid("resource")), project_id: asText(r.projectId), label: asText(r.label, "Untitled resource"), url: asText(r.url), added: asDate(r.addedAt) })),
-  attachments: (data.attachments ?? []).filter(Boolean).map((a) => ({ id: asText(a.id, uid("attachment")), project_id: asText(a.projectId), name: asText(a.name, "Unnamed attachment"), size: asText(a.size), uploaded: asDate(a.uploadedAt) })),
-  defaultPingInterval: Number.isFinite(data.settings?.defaultPingInterval) ? data.settings.defaultPingInterval : 21,
+  attachments: (data.attachments ?? []).filter(Boolean).map((a) => ({ id: asText(a.id, uid("attachment")), project_id: asText(a.projectId), label: asText(a.label, "Unnamed attachment"), url: asText(a.url), uploaded: asDate(a.uploadedAt) })),
+  settings: {
+    default_ping_interval: Number.isFinite(data.settings?.defaultPingInterval) ? data.settings.defaultPingInterval : 21,
+    active_project_limit: Number.isFinite(data.settings?.activeProjectLimit) ? data.settings.activeProjectLimit : 5,
+  }
 });
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { authenticated } = useAuth();
-  const [state, setState] = useState<State>({ projects: [], milestones: [], tasks: [], contacts: [], interactions: [], resources: [], attachments: [], defaultPingInterval: 21 });
+  const [state, setState] = useState<State>({ projects: [], milestones: [], tasks: [], contacts: [], interactions: [], resources: [], attachments: [], settings: { default_ping_interval: 21, active_project_limit: 5 } });
 
   const reload = useCallback(async () => setState(mapWorkspace(await apiRequest<ApiWorkspace>("/api/workspace"))), []);
   useEffect(() => { if (authenticated) void reload().catch(() => undefined); }, [authenticated, reload]);
@@ -472,11 +223,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
   const updateProject: Store["updateProject"] = useCallback(async (id, patch) => { await apiRequest(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, description: patch.description, status: patch.status, archived: patch.is_archived }) }); await reload(); }, [reload]);
   const addMilestone: Store["addMilestone"] = useCallback(async (projectId, name) => { const response = await apiRequest<ApiWorkspace["milestones"][number]>(`/api/projects/${projectId}/milestones`, { method: "POST", body: JSON.stringify({ name }) }); const milestone = { id: response.id, project_id: response.projectId, name: response.name, status: response.status }; setState((s) => ({ ...s, milestones: [...s.milestones, milestone] })); return milestone; }, []);
-  const addTask: Store["addTask"] = useCallback(async (input) => { const response = await apiRequest<ApiWorkspace["tasks"][number]>("/api/tasks", { method: "POST", body: JSON.stringify({ title: input.title, description: input.description, projectId: input.project_id, milestoneId: input.milestone_id, due: input.due, contactId: input.contact_id }) }); const task = { id: response.id, title: response.title, description: response.description ?? "", status: response.status, blocked_reason: response.blockedReason, project_id: response.projectId, milestone_id: response.milestoneId, due: response.due, created: response.createdAt, contact_id: response.contactId }; setState((s) => ({ ...s, tasks: [task, ...s.tasks] })); return task; }, []);
+  const addTask: Store["addTask"] = useCallback(async (input) => { const response = await apiRequest<ApiWorkspace["tasks"][number]>("/api/tasks", { method: "POST", body: JSON.stringify({ title: input.title, description: input.description, projectId: input.project_id, milestoneId: input.milestone_id, due: input.due, contactId: input.contact_id }) }); const task = { id: response.id, title: response.title, description: response.description ?? "", status: response.status, blocked_reason: response.blockedReason, project_id: response.projectId, milestone_id: response.milestoneId, due: response.due, created: response.createdAt, completed: response.completedAt ?? null, contact_id: response.contactId }; setState((s) => ({ ...s, tasks: [task, ...s.tasks] })); return task; }, []);
   const updateTask: Store["updateTask"] = useCallback(async (id, patch) => {
     setState((s) => ({ ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
     try {
       await apiRequest(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ title: patch.title, description: patch.description, status: wireStatus(patch.status), blockedReason: patch.blocked_reason, projectId: patch.project_id, milestoneId: patch.milestone_id, due: patch.due, contactId: patch.contact_id }) });
+      // Reconcile server state on success (backend may compute derived fields like completedAt)
+      await reload();
     } catch (err) {
       await reload();
       throw err;
@@ -487,8 +240,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateContact: Store["updateContact"] = useCallback(async (id, patch) => { await apiRequest(`/api/contacts/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, originContext: patch.origin_context, tags: patch.tags, pingIntervalDays: patch.ping_interval_days, lastContact: patch.last_contact, notes: patch.notes }) }); await reload(); }, [reload]);
   const logInteraction: Store["logInteraction"] = useCallback(async (contactId, note, date) => { await apiRequest(`/api/contacts/${contactId}/interactions`, { method: "POST", body: JSON.stringify({ note, date }) }); await reload(); }, [reload]);
   const addResource: Store["addResource"] = useCallback(async (projectId, label, url) => { await apiRequest(`/api/projects/${projectId}/resources`, { method: "POST", body: JSON.stringify({ label, url }) }); await reload(); }, [reload]);
-  const addAttachment: Store["addAttachment"] = useCallback(async (projectId, name, size) => { await apiRequest(`/api/projects/${projectId}/attachments`, { method: "POST", body: JSON.stringify({ name, size }) }); await reload(); }, [reload]);
-  const setDefaultPingInterval = useCallback(async (n: number) => { await apiRequest("/api/settings", { method: "PATCH", body: JSON.stringify({ defaultPingInterval: n }) }); setState((s) => ({ ...s, defaultPingInterval: n })); }, []);
+  const addAttachment: Store["addAttachment"] = useCallback(async (projectId, label, url) => { await apiRequest(`/api/projects/${projectId}/attachments`, { method: "POST", body: JSON.stringify({ label, url }) }); await reload(); }, [reload]);
+  const updateSettings: Store["updateSettings"] = useCallback(async (patch) => { 
+    setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })); 
+    await apiRequest("/api/settings", { method: "PATCH", body: JSON.stringify({ defaultPingInterval: patch.default_ping_interval, activeProjectLimit: patch.active_project_limit }) }); 
+  }, []);
 
   const value = useMemo<Store>(
     () => ({
@@ -504,7 +260,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       logInteraction,
       addResource,
       addAttachment,
-      setDefaultPingInterval,
+      updateSettings,
     }),
     [
       state,
@@ -519,7 +275,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       logInteraction,
       addResource,
       addAttachment,
-      setDefaultPingInterval,
+      updateSettings,
     ],
   );
 
@@ -546,17 +302,20 @@ export function statusLabel(s: Status) {
     waiting: "Waiting",
     blocked: "Blocked",
     done: "Done",
-  }[asStatus(s)];
+    passive: "Passive",
+  }[s] ?? "Unknown";
 }
 
 export function pingInfo(contact: Contact) {
   const since = ageInDays(contact.last_contact);
   const interval = Number.isFinite(contact.ping_interval_days) ? Math.max(1, contact.ping_interval_days) : 21;
   const overdueBy = since - interval;
+  const daysUntilNext = interval - since; // negative when overdue
   return {
     since,
     overdue: overdueBy > 0,
     overdueBy,
-    nextPing: daysAhead(-since + interval),
+    // When overdue: show TODAY (already past due), otherwise show future date
+    nextPing: daysUntilNext >= 0 ? daysAhead(daysUntilNext) : TODAY,
   };
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { PageHeader } from "@/components/AppShell";
+import { PageHeader, useUI } from "@/components/AppShell";
 import {
   Button,
   Card,
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui-kit";
 import { StatusGlyph } from "@/components/StatusGlyph";
 import { TaskDrawer, TaskRow } from "@/components/tasks";
-import { TODAY, useStore, type Task } from "@/lib/store";
+import { TODAY, useStore, type Task, type Status } from "@/lib/store";
 
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({
@@ -45,9 +45,13 @@ function ProjectDetail() {
   const [addingResource, setAddingResource] = useState(false);
   const [resLabel, setResLabel] = useState("");
   const [resUrl, setResUrl] = useState("");
+  const [addingAttachment, setAddingAttachment] = useState(false);
+  const [attLabel, setAttLabel] = useState("");
+  const [attUrl, setAttUrl] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const ui = useUI();
 
   if (!project) {
     return (
@@ -81,7 +85,32 @@ function ProjectDetail() {
         <Card grain className="p-5">
           <div className="flex items-center gap-2">
             <StatusGlyph status={project.status} size={14} />
-            <h1 className="text-[18px] font-semibold">{project.name}</h1>
+            <select
+              value={project.status}
+              onChange={(e) => {
+                const newStatus = e.target.value as Status;
+                const isActiveState = ["todo", "in_progress", "waiting", "blocked"].includes(newStatus);
+                const wasActiveState = ["todo", "in_progress", "waiting", "blocked"].includes(project.status);
+                
+                if (isActiveState && !wasActiveState) {
+                  const active = store.projects.filter((p) => !p.is_archived && p.status !== "done" && p.status !== "passive");
+                  ui.ensureCapacity(active.length, store.settings.active_project_limit, () => {
+                    store.updateProject(project.id, { status: newStatus });
+                  });
+                } else {
+                  store.updateProject(project.id, { status: newStatus });
+                }
+              }}
+              className="mono bg-transparent text-[12px] font-medium uppercase tracking-wide text-ink-muted hover:text-ink focus:outline-none"
+            >
+              <option value="todo">Todo</option>
+              <option value="in_progress">In Progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="blocked">Blocked</option>
+              <option value="done">Done</option>
+              <option value="passive">Passive</option>
+            </select>
+            <h1 className="ml-2 text-[18px] font-semibold">{project.name}</h1>
           </div>
           <p className="mono mt-1 text-[11px] text-ink-muted">
             created {project.created} · updated {project.updated}
@@ -216,6 +245,7 @@ function ProjectDetail() {
                               due: taskDue || null,
                             });
                             setTaskTitle("");
+                            setTaskDue(TODAY);
                             setAddTaskFor(null);
                           }}
                         >
@@ -302,40 +332,66 @@ function ProjectDetail() {
           </Card>
 
           <Card>
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+            <div className="border-b border-border px-4 py-2.5">
               <SectionLabel>Attachments</SectionLabel>
-              <label className="focus-ink mono cursor-pointer text-[11.5px] text-ink-secondary underline decoration-border underline-offset-2 hover:text-ink">
-                + Upload
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    const size = f.size > 1024 * 1024
-                      ? `${(f.size / 1024 / 1024).toFixed(1)} MB`
-                      : `${Math.max(1, Math.round(f.size / 1024))} KB`;
-                    store.addAttachment(project.id, f.name, size);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
             </div>
             <ul className="divide-y divide-border">
               {attachments.map((a) => (
-                <li key={a.id} className="flex items-center gap-2 px-4 py-2.5">
-                  <span className="truncate text-[12.5px]">{a.name}</span>
-                  <span className="mono ml-auto shrink-0 text-[11px] text-ink-muted">
-                    {a.size} · {a.uploaded}
+                <li key={a.id} className="flex items-center px-4 py-2.5">
+                  <span className="truncate text-[12.5px]">{a.label}</span>
+                  <a
+                    href={a.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mono ml-3 truncate text-[11.5px] underline decoration-border underline-offset-2 hover:decoration-ink"
+                  >
+                    {a.url}
+                  </a>
+                  <span className="mono ml-auto shrink-0 pl-3 text-[11px] text-ink-muted">
+                    {a.uploaded}
                   </span>
                 </li>
               ))}
               {attachments.length === 0 ? (
                 <li>
-                  <EmptyState message="No attachments uploaded yet." />
+                  <EmptyState message="No attachments yet." actionLabel="Add attachment" onAction={() => setAddingAttachment(true)} />
                 </li>
               ) : null}
             </ul>
+            {addingAttachment ? (
+              <div className="flex flex-wrap items-end gap-2 border-t border-border p-3">
+                <div className="w-32">
+                  <Field label="Label">
+                    <Input autoFocus value={attLabel} onChange={(e) => setAttLabel(e.target.value)} placeholder="File label" />
+                  </Field>
+                </div>
+                <div className="min-w-[180px] flex-1">
+                  <Field label="URL">
+                    <Input value={attUrl} onChange={(e) => setAttUrl(e.target.value)} placeholder="https://" />
+                  </Field>
+                </div>
+                <Button onClick={() => setAddingAttachment(false)}>Cancel</Button>
+                <Button
+                  variant="solid"
+                  onClick={() => {
+                    if (!attLabel.trim() || !attUrl.trim()) return;
+                    store.addAttachment(project.id, attLabel.trim(), attUrl.trim());
+                    setAttLabel("");
+                    setAttUrl("");
+                    setAddingAttachment(false);
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingAttachment(true)}
+                className="focus-ink mono w-full border-t border-border px-4 py-2 text-left text-[11.5px] text-ink-muted hover:text-ink"
+              >
+                + Add Attachment
+              </button>
+            )}
           </Card>
         </div>
       </div>

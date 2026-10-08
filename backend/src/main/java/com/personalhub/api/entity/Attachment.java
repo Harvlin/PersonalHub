@@ -21,9 +21,9 @@ import lombok.Setter;
 public class Attachment {
     @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
     @NotNull @Column(nullable = false) private UUID projectId;
-    @NotBlank @Size(max = 255) @Column(nullable = false, length = 255) private String name;
-    @NotBlank @Size(max = 80) @Column(nullable = false, length = 80) private String size;
+    @NotBlank @Size(max = 255) @Column(nullable = false, length = 255) private String label;
+    @NotBlank @Size(max = 2000) @Column(nullable = false, length = 2000) private String url;
     @Column(nullable = false, updatable = false) private Instant uploadedAt;
 
-    public Attachment(UUID projectId, String name, String size) { this.projectId = projectId; this.name = name; this.size = size; }
+    public Attachment(UUID projectId, String label, String url) { this.projectId = projectId; this.label = label; this.url = url; }
 }

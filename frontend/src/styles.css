@@ -56,9 +56,14 @@
 }
 
 .dark {
-  --background: oklch(0.955 0.012 85);
-  --paper: oklch(0.976 0.008 85);
-  --foreground: oklch(0.2 0.008 60);
+  --background: oklch(0.15 0 0);
+  --paper: oklch(0.2 0 0);
+  --foreground: oklch(0.98 0 0);
+  --ink-secondary: oklch(0.98 0 0 / 70%);
+  --ink-muted: oklch(0.98 0 0 / 45%);
+  --hairline: oklch(0.98 0 0 / 20%);
+  --hairline-soft: oklch(0.98 0 0 / 10%);
+  --signal: oklch(0.65 0.25 30);
 }
 
 @layer base {

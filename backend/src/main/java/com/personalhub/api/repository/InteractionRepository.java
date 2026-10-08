@@ -8,4 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface InteractionRepository extends JpaRepository<Interaction, UUID> {
     List<Interaction> findByContactIdOrderByDateDesc(UUID contactId);
     List<Interaction> findAllByOrderByDateDesc();
+    void deleteByContactId(UUID contactId);
 }
