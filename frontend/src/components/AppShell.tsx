@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronsUpDown, Menu, Search, X } from "lucide-react";
+import { ChevronsUpDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { Button, Chip, Field, Input, Modal, Segmented } from "@/components/ui-kit";
 import { StatusGlyph } from "@/components/StatusGlyph";
 import { TODAY, initials, useStore } from "@/lib/store";
@@ -96,6 +96,13 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
         </span>
         <span className="text-[13px] font-semibold">Personal Hub</span>
         <ChevronsUpDown size={13} className="ml-auto text-ink-muted" />
+        <button
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="focus-ink ml-1 flex h-6 w-6 items-center justify-center rounded-[3px] text-ink-muted transition-colors hover:bg-accent hover:text-ink"
+        >
+          {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+        </button>
       </div>
 
       <button
@@ -215,7 +222,14 @@ function MobileNav({ onSearch, onClose }: { onSearch: () => void; onClose: () =>
       <div className="flex h-12 items-center px-4">
         <span className="hairline flex h-6 w-6 items-center justify-center rounded-[3px] text-[10px] font-semibold">PH</span>
         <span className="ml-2 text-[13px] font-semibold">Personal Hub</span>
-        <button onClick={onClose} aria-label="Close navigation" className="focus-ink ml-auto p-2 text-ink-muted hover:text-ink"><X size={18} /></button>
+        <button
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="focus-ink ml-auto mr-2 flex h-8 w-8 items-center justify-center rounded-[3px] text-ink-muted hover:bg-accent hover:text-ink"
+        >
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+        <button onClick={onClose} aria-label="Close navigation" className="focus-ink p-2 text-ink-muted hover:text-ink"><X size={18} /></button>
       </div>
       <nav className="border-b border-border bg-paper px-3 py-2">
         {NAV.map((item) => (
