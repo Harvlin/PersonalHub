@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -39,6 +40,14 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.badRequest().body(Map.of(
             "timestamp", Instant.now(), "status", 400, "error", "Bad Request", "message", message));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException exception) {
+        HttpStatus status = HttpStatus.resolve(exception.getStatusCode().value());
+        if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
+        return ResponseEntity.status(status).body(Map.of(
+            "timestamp", Instant.now(), "status", status.value(), "error", status.getReasonPhrase(), "message", exception.getReason() != null ? exception.getReason() : status.getReasonPhrase()));
     }
 
     @ExceptionHandler(Exception.class)
