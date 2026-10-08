@@ -1,5 +1,5 @@
 {
   "framework": null,
   "installCommand": "cd frontend && npm install",
-  "buildCommand": "cd frontend && npx vite build"
+  "buildCommand": "cd frontend && npx vite build && node build-vercel.mjs && cp -r .vercel/output ../.vercel/output"
 }
