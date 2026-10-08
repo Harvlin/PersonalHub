@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-10-08T17:55:50+0700",
+    date = "2026-10-08T22:10:11+0700",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.46.100.v20260826-1225, environment: Java 21.0.12.1 (Eclipse Adoptium)"
 )
 @Component
@@ -53,8 +53,8 @@ public class ProjectMapperImpl implements ProjectMapper {
 
         Project project = new Project();
 
-        project.setName( request.name() );
         project.setDescription( request.description() );
+        project.setName( request.name() );
 
         return project;
     }
@@ -65,11 +65,11 @@ public class ProjectMapperImpl implements ProjectMapper {
             return;
         }
 
-        entity.setName( request.name() );
-        entity.setDescription( request.description() );
-        entity.setStatus( request.status() );
         if ( request.archived() != null ) {
             entity.setArchived( request.archived() );
         }
+        entity.setDescription( request.description() );
+        entity.setName( request.name() );
+        entity.setStatus( request.status() );
     }
 }

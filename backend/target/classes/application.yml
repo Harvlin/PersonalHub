@@ -1,8 +1,5 @@
 spring:
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
     timeout: 12h
   application:
     name: personal-hub-api

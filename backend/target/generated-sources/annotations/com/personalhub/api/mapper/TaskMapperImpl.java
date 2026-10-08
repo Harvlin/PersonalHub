@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-10-08T16:30:06+0700",
+    date = "2026-10-08T22:10:11+0700",
     comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.46.100.v20260826-1225, environment: Java 21.0.12.1 (Eclipse Adoptium)"
 )
 @Component
@@ -61,12 +61,12 @@ public class TaskMapperImpl implements TaskMapper {
 
         Task task = new Task();
 
-        task.setTitle( request.title() );
-        task.setDescription( request.description() );
-        task.setProjectId( request.projectId() );
-        task.setMilestoneId( request.milestoneId() );
-        task.setDue( request.due() );
         task.setContactId( request.contactId() );
+        task.setDescription( request.description() );
+        task.setDue( request.due() );
+        task.setMilestoneId( request.milestoneId() );
+        task.setProjectId( request.projectId() );
+        task.setTitle( request.title() );
 
         return task;
     }
