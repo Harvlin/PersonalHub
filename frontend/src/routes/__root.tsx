@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { StoreProvider } from "@/lib/store";
 import { AppShell } from "@/components/AppShell";
 import { AuthProvider } from "@/lib/auth";
+import { ThemeProvider } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -120,9 +121,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <StoreProvider><AppShell /></StoreProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <StoreProvider><AppShell /></StoreProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
