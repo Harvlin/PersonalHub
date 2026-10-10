@@ -185,6 +185,7 @@ function ProjectDetail() {
           {milestones.map((m) => {
             const tasks = store.tasks.filter((t) => t.milestone_id === m.id);
             const done = tasks.filter((t) => t.status === "done").length;
+            const milestoneStatus = tasks.length > 0 && done === tasks.length ? "done" : m.status;
             const expanded = isOpen(m.id);
             return (
               <Card key={m.id}>
@@ -192,7 +193,7 @@ function ProjectDetail() {
                   onClick={() => setOpen((o) => ({ ...o, [m.id]: !expanded }))}
                   className="focus-ink flex w-full items-center gap-2.5 px-4 py-3 text-left"
                 >
-                  <StatusGlyph status={m.status} />
+                  <StatusGlyph status={milestoneStatus} />
                   <span className="text-[13.5px] font-medium">{m.name}</span>
                   <span className="mono ml-auto text-[11.5px] text-ink-muted">
                     {done}/{tasks.length} done
