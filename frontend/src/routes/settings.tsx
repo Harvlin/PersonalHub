@@ -23,7 +23,7 @@ function SettingsPage() {
   const [limitValue, setLimitValue] = useState(String(store.settings.active_project_limit));
   const [pingError, setPingError] = useState("");
   const [limitError, setLimitError] = useState("");
-  const archived = store.projects.filter((p) => p.is_archived);
+  const archived = store.projects.filter((p) => p.lifecycle === "ARCHIVED");
 
   return (
     <>
@@ -95,7 +95,7 @@ function SettingsPage() {
               <li key={p.id} className="flex items-center gap-2 px-4 py-2.5">
                 <span className="text-[13px]">{p.name}</span>
                 <button
-                  onClick={() => store.updateProject(p.id, { is_archived: false })}
+                  onClick={() => store.updateProject(p.id, { lifecycle: "ACTIVE" })}
                   className="focus-ink mono ml-auto text-[11.5px] text-ink-secondary underline decoration-border underline-offset-2 hover:text-ink"
                 >
                   Unarchive

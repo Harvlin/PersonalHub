@@ -1,6 +1,8 @@
 package com.personalhub.api.entity;
 
 import com.personalhub.api.enums.Status;
+import com.personalhub.api.enums.ProjectLifecycle;
+import com.personalhub.api.enums.ProjectHealth;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -30,6 +32,14 @@ public class Project {
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
     private Status status = Status.TODO;
     @Column(nullable = false) private boolean archived;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
+    private ProjectLifecycle lifecycle = ProjectLifecycle.ACTIVE;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
+    private ProjectHealth health = ProjectHealth.ON_TRACK;
+    @Size(max = 500) @Column(length = 500)
+    private String blockedReason;
+    @Column
+    private Instant blockedSince;
     @Column(nullable = false, updatable = false) private Instant createdAt;
     @Column(nullable = false) private Instant updatedAt;
 

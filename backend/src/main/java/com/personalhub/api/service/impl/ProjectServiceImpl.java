@@ -3,6 +3,7 @@ package com.personalhub.api.service.impl;
 import com.personalhub.api.dto.*;
 import com.personalhub.api.entity.*;
 import com.personalhub.api.enums.Status;
+import com.personalhub.api.enums.ProjectHealth;
 import com.personalhub.api.mapper.*;
 import com.personalhub.api.repository.*;
 import com.personalhub.api.service.ProjectService;
@@ -37,7 +38,28 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public ProjectDto create(CreateProjectRequest request) { Project entity = projectMapper.toEntity(request); entity.setCreatedAt(Instant.now()); entity.setUpdatedAt(Instant.now()); return projectMapper.toDto(projects.save(entity)); }
     @Override
-    public ProjectDto update(UUID id, RequestModels.ProjectPatch request) { Project entity = project(id); if (request.name() != null) entity.setName(request.name()); if (request.description() != null) entity.setDescription(request.description()); if (request.status() != null) entity.setStatus(request.status()); if (request.archived() != null) entity.setArchived(request.archived()); entity.setUpdatedAt(Instant.now()); return projectMapper.toDto(projects.save(entity)); }
+    public ProjectDto update(UUID id, RequestModels.ProjectPatch request) {
+        Project entity = project(id);
+        if (request.name() != null) entity.setName(request.name());
+        if (request.description() != null) entity.setDescription(request.description());
+        if (request.status() != null) entity.setStatus(request.status());
+        if (request.archived() != null) entity.setArchived(request.archived());
+        if (request.lifecycle() != null) entity.setLifecycle(request.lifecycle());
+        if (request.health() != null) {
+            if (request.health() == ProjectHealth.BLOCKED && (request.blockedReason() == null || request.blockedReason().isBlank())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "BLOCKED requires blockedReason");
+            }
+            entity.setHealth(request.health());
+            if (request.health() == ProjectHealth.BLOCKED && entity.getBlockedSince() == null) {
+                entity.setBlockedSince(Instant.now());
+            } else if (request.health() == ProjectHealth.ON_TRACK) {
+                entity.setBlockedSince(null);
+            }
+        }
+        if (request.blockedReason() != null) entity.setBlockedReason(request.blockedReason());
+        entity.setUpdatedAt(Instant.now());
+        return projectMapper.toDto(projects.save(entity));
+    }
     @Override
     public void delete(UUID id) { project(id); tasks.deleteAll(tasks.findByProjectIdOrderByCreatedAtDesc(id)); milestones.deleteAll(milestones.findByProjectIdOrderByNameAsc(id)); resources.deleteAll(resources.findByProjectIdOrderByAddedAtDesc(id)); attachments.deleteAll(attachments.findByProjectIdOrderByUploadedAtDesc(id)); projects.deleteById(id); }
     @Override @Transactional(readOnly = true)

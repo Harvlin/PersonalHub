@@ -27,7 +27,7 @@ function ProjectsPage() {
   const [menuFor, setMenuFor] = useState<string | null>(null);
 
   const projects = store.projects
-    .filter((p) => (tab === "active" ? !p.is_archived : p.is_archived))
+    .filter((p) => (tab === "active" ? p.lifecycle !== "ARCHIVED" : p.lifecycle === "ARCHIVED"))
     .filter((p) => (statusFilter === "all" ? true : p.status === statusFilter));
 
   return (
@@ -95,12 +95,12 @@ function ProjectsPage() {
                     <div className="hairline absolute right-2 top-8 z-20 rounded-md bg-paper p-1">
                       <button
                         onClick={() => {
-                          store.updateProject(p.id, { is_archived: !p.is_archived });
+                          store.updateProject(p.id, { lifecycle: p.lifecycle === "ARCHIVED" ? "ACTIVE" : "ARCHIVED" });
                           setMenuFor(null);
                         }}
                         className="block w-full rounded-[3px] px-3 py-1.5 text-left text-[12.5px] hover:bg-accent"
                       >
-                        {p.is_archived ? "Unarchive" : "Archive"}
+                        {p.lifecycle === "ARCHIVED" ? "Unarchive" : "Archive"}
                       </button>
                     </div>
                   ) : null}

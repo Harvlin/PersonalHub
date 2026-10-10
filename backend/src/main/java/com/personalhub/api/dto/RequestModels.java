@@ -12,7 +12,7 @@ import java.util.UUID;
 public final class RequestModels {
     private RequestModels() {}
     public record ProjectCreate(@NotBlank @Size(max = 160) String name, @Size(max = 10000) String description) {}
-    public record ProjectPatch(@Size(max = 160) String name, @Size(max = 10000) String description, Status status, Boolean archived) {}
+    public record ProjectPatch(@Size(max = 160) String name, @Size(max = 10000) String description, Status status, Boolean archived, com.personalhub.api.enums.ProjectLifecycle lifecycle, com.personalhub.api.enums.ProjectHealth health, @Size(max = 500) String blockedReason) {}
     public record MilestoneCreate(@NotBlank @Size(max = 160) String name) {}
     public record MilestonePatch(@Size(max = 160) String name, Status status) {}
     public record TaskCreate(@NotBlank @Size(max = 240) String title, @Size(max = 20000) String description, @NotNull UUID projectId, @NotNull UUID milestoneId, LocalDate due, UUID contactId) {}

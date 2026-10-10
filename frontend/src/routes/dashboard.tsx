@@ -47,8 +47,19 @@ function Dashboard() {
     return due && daysBetween(TODAY, due) < 0;
   };
 
-  const needsAttentionTasks = store.tasks.filter(
-    (t) => t.status !== "done" && (t.status === "blocked" || isOverdue(t.due))
+  // Blocked tasks from ANY project, plus overdue tasks
+  const needsAttentionTasks = store.tasks.filter((t) => {
+    if (t.status === "done") return false;
+    // Task-level blocked always appears
+    if (t.status === "blocked") return true;
+    // Overdue tasks appear regardless of project state
+    if (isOverdue(t.due)) return true;
+    return false;
+  });
+
+  // Projects that are ACTIVE+BLOCKED should appear in Needs Attention
+  const needsAttentionProjects = store.projects.filter(
+    (p) => p.lifecycle === "ACTIVE" && p.health === "BLOCKED"
   );
 
   const needsAttentionPings = store.contacts
@@ -56,17 +67,23 @@ function Dashboard() {
     .filter((x) => x.ping.overdue)
     .sort((a, b) => b.ping.overdueBy - a.ping.overdueBy);
 
-  const hasNeedsAttention = needsAttentionTasks.length > 0 || needsAttentionPings.length > 0;
+  const hasNeedsAttention = needsAttentionTasks.length > 0 || needsAttentionPings.length > 0 || needsAttentionProjects.length > 0;
 
-  const inRange = (due: string | null, status: string) => {
-    if (!due || status === "blocked" || isOverdue(due)) return false;
-    const diff = daysBetween(TODAY, due);
+  const inRange = (task: Task) => {
+    if (task.status === "done") return false;
+    if (task.status === "blocked") return false;
+    if (isOverdue(task.due)) return false;
+    
+    // Only show tasks from ACTIVE projects in today/this week view
+    const project = store.projects.find((p) => p.id === task.project_id);
+    if (!project || project.lifecycle !== "ACTIVE") return false;
+    
+    if (!task.due) return false;
+    const diff = daysBetween(TODAY, task.due);
     return range === "today" ? diff === 0 : diff >= 0 && diff <= 7;
   };
 
-  const visibleTasks = store.tasks
-    .filter((t) => inRange(t.due, t.status))
-    .filter((t) => (hideDone ? t.status !== "done" : true));
+  const visibleTasks = store.tasks.filter(inRange).filter((t) => (hideDone ? t.status !== "done" : true));
 
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -122,6 +139,7 @@ function Dashboard() {
             <ul className="divide-y divide-border">
               {needsAttentionTasks.map((t) => {
                 const ms = store.milestones.find((m) => m.id === t.milestone_id);
+                const project = store.projects.find((p) => p.id === t.project_id);
                 return (
                   <li key={t.id} className="flex items-center gap-2.5 px-4 py-2.5">
                     <StatusGlyph status={t.status} />
@@ -141,7 +159,32 @@ function Dashboard() {
                       </Link>
                     ) : null}
                     <span className="mono ml-auto shrink-0 text-[11px] text-signal font-medium uppercase">
-                      {t.status === "blocked" ? "Blocked" : "Overdue"}
+                      {t.status === "blocked" ? "Blocked" : isOverdue(t.due) ? (project?.lifecycle === "PASSIVE" || project?.lifecycle === "ARCHIVED" ? "Overdue · project paused" : "Overdue") : ""}
+                    </span>
+                  </li>
+                );
+              })}
+              {needsAttentionProjects.map((p) => {
+                const blockedDays = p.blocked_since ? ageInDays(p.blocked_since) : 0;
+                return (
+                  <li key={p.id} className="flex items-center gap-2.5 px-4 py-2.5">
+                    <span className="hairline mono flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] text-[10px] text-ink-muted">
+                      ■
+                    </span>
+                    <Link
+                      to="/projects/$id"
+                      params={{ id: p.id }}
+                      className="truncate text-[13px] underline decoration-border underline-offset-2 hover:decoration-ink"
+                    >
+                      {p.name}
+                    </Link>
+                    {p.blocked_reason ? (
+                      <span className="text-[12px] text-ink-muted truncate max-w-xs">
+                        {p.blocked_reason}
+                      </span>
+                    ) : null}
+                    <span className="mono ml-auto shrink-0 text-[11px] text-signal font-medium uppercase">
+                      Blocked {blockedDays}d
                     </span>
                   </li>
                 );

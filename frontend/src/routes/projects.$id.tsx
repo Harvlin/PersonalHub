@@ -14,7 +14,7 @@ import {
 } from "@/components/ui-kit";
 import { StatusGlyph } from "@/components/StatusGlyph";
 import { TaskDrawer, TaskRow } from "@/components/tasks";
-import { TODAY, useStore, type Task, type Status } from "@/lib/store";
+import { TODAY, ageInDays, useStore, type Task, type Status } from "@/lib/store";
 
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({
@@ -71,11 +71,13 @@ function ProjectDetail() {
   const isOpen = (mid: string) => open[mid] ?? mid === firstInProgress?.id;
   const resources = store.resources.filter((r) => r.project_id === project.id);
   const attachments = store.attachments.filter((a) => a.project_id === project.id);
+  const [showBlockedReason, setShowBlockedReason] = useState(false);
+  const [blockedReason, setBlockedReason] = useState(project.blocked_reason ?? "");
 
   return (
     <>
       <PageHeader crumbs={[{ label: "Projects", to: "/projects" }, { label: project.name }]}>
-        <Button onClick={() => setConfirmArchive(true)}>{project.is_archived ? "Unarchive" : "Archive"}</Button>
+        <Button onClick={() => setConfirmArchive(true)}>{project.lifecycle === "ARCHIVED" ? "Unarchive" : "Archive"}</Button>
         <Button variant="solid" onClick={() => setAddingMilestone(true)}>
           Add Milestone
         </Button>
@@ -84,37 +86,81 @@ function ProjectDetail() {
       <div className="space-y-5 p-5">
         <Card grain className="p-5">
           <div className="flex items-center gap-2">
-            <StatusGlyph status={project.status} size={14} />
             <select
-              value={project.status}
+              value={project.lifecycle}
               onChange={(e) => {
-                const newStatus = e.target.value as Status;
-                const isActiveState = ["todo", "in_progress", "waiting", "blocked"].includes(newStatus);
-                const wasActiveState = ["todo", "in_progress", "waiting", "blocked"].includes(project.status);
+                const newLifecycle = e.target.value as typeof project.lifecycle;
+                const isActivating = newLifecycle === "ACTIVE" && project.lifecycle !== "ACTIVE";
                 
-                if (isActiveState && !wasActiveState) {
-                  const active = store.projects.filter((p) => !p.is_archived && p.status !== "done" && p.status !== "passive");
+                if (isActivating) {
+                  const active = store.projects.filter((p) => p.lifecycle === "ACTIVE");
                   ui.ensureCapacity(active.length, store.settings.active_project_limit, () => {
-                    store.updateProject(project.id, { status: newStatus });
+                    store.updateProject(project.id, { lifecycle: newLifecycle });
                   });
                 } else {
-                  store.updateProject(project.id, { status: newStatus });
+                  store.updateProject(project.id, { lifecycle: newLifecycle });
                 }
               }}
               className="mono bg-transparent text-[12px] font-medium uppercase tracking-wide text-ink-muted hover:text-ink focus:outline-none"
             >
-              <option value="todo">Todo</option>
-              <option value="in_progress">In Progress</option>
-              <option value="waiting">Waiting</option>
-              <option value="blocked">Blocked</option>
-              <option value="done">Done</option>
-              <option value="passive">Passive</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PASSIVE">Passive</option>
+              <option value="ARCHIVED">Archived</option>
             </select>
+            
+            <select
+              value={project.health}
+              onChange={(e) => {
+                const newHealth = e.target.value as typeof project.health;
+                if (newHealth === "BLOCKED") {
+                  setShowBlockedReason(true);
+                } else {
+                  store.updateProject(project.id, { health: newHealth });
+                  setShowBlockedReason(false);
+                }
+              }}
+              className="mono bg-transparent text-[12px] font-medium uppercase tracking-wide text-ink-muted hover:text-ink focus:outline-none"
+            >
+              <option value="ON_TRACK">On Track</option>
+              <option value="BLOCKED">Blocked</option>
+            </select>
+            
             <h1 className="ml-2 text-[18px] font-semibold">{project.name}</h1>
           </div>
+          
+          {showBlockedReason ? (
+            <div className="mt-3 space-y-2 border-t border-border pt-3">
+              <label className="text-[11px] font-medium text-ink-muted">Blocked reason (required)</label>
+              <input
+                type="text"
+                value={blockedReason}
+                onChange={(e) => setBlockedReason(e.target.value)}
+                placeholder="What's blocking this project?"
+                className="w-full text-[13px] border border-border rounded px-2 py-1.5 bg-paper"
+              />
+              <div className="flex justify-end gap-2">
+                <Button onClick={() => {
+                  setShowBlockedReason(false);
+                  setBlockedReason(project.blocked_reason ?? "");
+                }}>Cancel</Button>
+                <Button 
+                  variant="solid"
+                  onClick={() => {
+                    if (blockedReason.trim()) {
+                      store.updateProject(project.id, { health: "BLOCKED", blocked_reason: blockedReason.trim() });
+                      setShowBlockedReason(false);
+                    }
+                  }}
+                >
+                  Set Blocked
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          
           <p className="mono mt-1 text-[11px] text-ink-muted">
             created {project.created} · updated {project.updated}
-            {project.is_archived ? " · archived" : ""}
+            {project.blocked_since ? ` · blocked ${ageInDays(project.blocked_since)}d` : ""}
           </p>
           <div className="mt-4">
             <SectionLabel>Description</SectionLabel>
@@ -402,25 +448,25 @@ function ProjectDetail() {
       <Modal
         open={confirmArchive}
         onClose={() => setConfirmArchive(false)}
-        title={project.is_archived ? "Unarchive project" : "Archive project"}
+        title={project.lifecycle === "ARCHIVED" ? "Unarchive project" : "Archive project"}
         width="max-w-sm"
       >
         <p className="text-[13px] text-ink-secondary">
-          {project.is_archived
+          {project.lifecycle === "ARCHIVED"
             ? `Move "${project.name}" back to your active projects?`
             : `"${project.name}" will move to the Archived tab and leave your active capacity.`}
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button onClick={() => setConfirmArchive(false)}>Cancel</Button>
           <Button
-            variant={project.is_archived ? "solid" : "danger"}
+            variant={project.lifecycle === "ARCHIVED" ? "solid" : "danger"}
             onClick={() => {
-              store.updateProject(project.id, { is_archived: !project.is_archived });
+              store.updateProject(project.id, { lifecycle: project.lifecycle === "ARCHIVED" ? "ACTIVE" : "ARCHIVED" });
               setConfirmArchive(false);
               navigate({ to: "/projects" });
             }}
           >
-            {project.is_archived ? "Unarchive" : "Archive"}
+            {project.lifecycle === "ARCHIVED" ? "Unarchive" : "Archive"}
           </Button>
         </div>
       </Modal>

@@ -10,6 +10,8 @@ import {
 import { ensureCsrfToken, useAuth } from "@/lib/auth";
 
 export type Status = "todo" | "in_progress" | "waiting" | "blocked" | "done" | "passive";
+export type ProjectLifecycle = "ACTIVE" | "PASSIVE" | "ARCHIVED";
+export type ProjectHealth = "ON_TRACK" | "BLOCKED";
 
 export type Task = {
   id: string;
@@ -38,6 +40,10 @@ export type Project = {
   description: string;
   status: Status;
   is_archived: boolean;
+  lifecycle: ProjectLifecycle;
+  health: ProjectHealth;
+  blocked_reason?: string | undefined;
+  blocked_since?: string | undefined;
   created: string;
   updated: string;
 };
@@ -185,7 +191,7 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
 }
 
 type ApiWorkspace = {
-  projects: Array<{ id: string; name: string; description?: string; status: Status; archived: boolean; createdAt: string; updatedAt: string }>;
+  projects: Array<{ id: string; name: string; description?: string; status: Status; archived: boolean; lifecycle: ProjectLifecycle; health: ProjectHealth; blockedReason?: string; blockedSince?: string; createdAt: string; updatedAt: string }>;
   milestones: Array<{ id: string; projectId: string; name: string; status: Status }>;
   tasks: Array<{ id: string; title: string; description?: string; status: Status; blockedReason?: string; projectId: string; milestoneId: string; due: string | null; createdAt: string; completedAt: string | null; contactId?: string }>;
   contacts: Array<{ id: string; name: string; originContext?: string; tags: string[]; pingIntervalDays: number; lastContact?: string; notes?: string }>;
@@ -196,7 +202,7 @@ type ApiWorkspace = {
 };
 
 const mapWorkspace = (data: ApiWorkspace): State => ({
-  projects: (data.projects ?? []).filter(Boolean).map((p) => ({ id: asText(p.id, uid("project")), name: asText(p.name, "Untitled project"), description: asText(p.description), status: asStatus(p.status), is_archived: Boolean(p.archived), created: asDate(p.createdAt), updated: asDate(p.updatedAt) })),
+  projects: (data.projects ?? []).filter(Boolean).map((p) => ({ id: asText(p.id, uid("project")), name: asText(p.name, "Untitled project"), description: asText(p.description), status: asStatus(p.status), is_archived: Boolean(p.archived), lifecycle: (p.lifecycle?.toUpperCase() as ProjectLifecycle) ?? "ACTIVE", health: (p.health?.toUpperCase() as ProjectHealth) ?? "ON_TRACK", blocked_reason: asText(p.blockedReason) || undefined, blocked_since: typeof p.blockedSince === "string" ? p.blockedSince.slice(0, 10) : undefined, created: asDate(p.createdAt), updated: asDate(p.updatedAt) })),
   milestones: (data.milestones ?? []).filter(Boolean).map((m) => ({ id: asText(m.id, uid("milestone")), project_id: asText(m.projectId), name: asText(m.name, "Untitled milestone"), status: asStatus(m.status) })),
   tasks: (data.tasks ?? []).filter(Boolean).map((t) => ({ id: asText(t.id, uid("task")), title: asText(t.title, "Untitled task"), description: asText(t.description), status: asStatus(t.status), blocked_reason: asText(t.blockedReason) || undefined, project_id: asText(t.projectId), milestone_id: asText(t.milestoneId), due: typeof t.due === "string" ? t.due.slice(0, 10) : null, created: asDate(typeof t.createdAt === "string" ? t.createdAt.slice(0, 10) : t.createdAt), completed: typeof t.completedAt === "string" ? t.completedAt.slice(0, 10) : null, contact_id: asText(t.contactId) || undefined })),
   contacts: (data.contacts ?? []).filter(Boolean).map((c) => ({ id: asText(c.id, uid("contact")), name: asText(c.name, "Unnamed contact"), origin_context: asText(c.originContext), tags: Array.isArray(c.tags) ? c.tags.filter((tag): tag is string => typeof tag === "string") : [], ping_interval_days: Number.isFinite(c.pingIntervalDays) ? c.pingIntervalDays : 21, last_contact: asDate(c.lastContact), notes: asText(c.notes) || undefined })),
@@ -218,10 +224,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addProject: Store["addProject"] = useCallback(async (name, description = "") => {
     const response = await apiRequest<ApiWorkspace["projects"][number]>("/api/projects", { method: "POST", body: JSON.stringify({ name, description }) });
-    const project: Project = { id: response.id, name: response.name, description: response.description ?? "", status: response.status, is_archived: response.archived, created: response.createdAt, updated: response.updatedAt };
+    const project: Project = { id: response.id, name: response.name, description: response.description ?? "", status: response.status, is_archived: response.archived, lifecycle: response.lifecycle ?? "ACTIVE", health: response.health ?? "ON_TRACK", blocked_reason: response.blockedReason, blocked_since: response.blockedSince?.slice(0, 10), created: response.createdAt, updated: response.updatedAt };
     setState((s) => ({ ...s, projects: [project, ...s.projects] })); return project;
   }, []);
-  const updateProject: Store["updateProject"] = useCallback(async (id, patch) => { await apiRequest(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, description: patch.description, status: wireStatus(patch.status), archived: patch.is_archived }) }); await reload(); }, [reload]);
+  const updateProject: Store["updateProject"] = useCallback(async (id, patch) => { await apiRequest(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ name: patch.name, description: patch.description, status: wireStatus(patch.status), archived: patch.is_archived, lifecycle: patch.lifecycle, health: patch.health, blockedReason: patch.blocked_reason }) }); await reload(); }, [reload]);
   const addMilestone: Store["addMilestone"] = useCallback(async (projectId, name) => { const response = await apiRequest<ApiWorkspace["milestones"][number]>(`/api/projects/${projectId}/milestones`, { method: "POST", body: JSON.stringify({ name }) }); const milestone = { id: response.id, project_id: response.projectId, name: response.name, status: response.status }; setState((s) => ({ ...s, milestones: [...s.milestones, milestone] })); return milestone; }, []);
   const addTask: Store["addTask"] = useCallback(async (input) => { const response = await apiRequest<ApiWorkspace["tasks"][number]>("/api/tasks", { method: "POST", body: JSON.stringify({ title: input.title, description: input.description, projectId: input.project_id, milestoneId: input.milestone_id, due: input.due, contactId: input.contact_id }) }); const task = { id: response.id, title: response.title, description: response.description ?? "", status: response.status, blocked_reason: response.blockedReason, project_id: response.projectId, milestone_id: response.milestoneId, due: response.due, created: response.createdAt, completed: response.completedAt ?? null, contact_id: response.contactId }; setState((s) => ({ ...s, tasks: [task, ...s.tasks] })); return task; }, []);
   const updateTask: Store["updateTask"] = useCallback(async (id, patch) => {

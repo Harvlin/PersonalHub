@@ -85,7 +85,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
   const { theme, toggleTheme } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [popover, setPopover] = useState(false);
-  const active = projects.filter((p) => !p.is_archived && p.status !== "done" && p.status !== "passive");
+  const active = projects.filter((p) => p.lifecycle === "ACTIVE");
   const limit = store.settings.active_project_limit;
 
   return (
@@ -266,7 +266,7 @@ function SwapProjectModal({
   onCancel: () => void;
 }) {
   const store = useStore();
-  const active = store.projects.filter((p) => !p.is_archived && p.status !== "done" && p.status !== "passive");
+  const active = store.projects.filter((p) => p.lifecycle === "ACTIVE");
   
   return (
     <Modal open onClose={onCancel} title="Active Project Limit Reached" grain>
@@ -279,7 +279,7 @@ function SwapProjectModal({
             <button
               key={p.id}
               onClick={() => {
-                store.updateProject(p.id, { status: "passive" });
+                store.updateProject(p.id, { lifecycle: "PASSIVE" });
                 onSwap(p.id);
               }}
               className="flex items-center gap-3 rounded-md border border-border p-3 text-left hover:bg-accent focus:bg-accent"
