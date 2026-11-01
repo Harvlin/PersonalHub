@@ -7,9 +7,9 @@ import { useStore } from "@/lib/store";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Personal Hub" },
+      { title: "Settings — Personal Inkwell" },
       { name: "description", content: "Default ping interval, archived projects, and the locked e-ink paper theme." },
-      { property: "og:title", content: "Settings — Personal Hub" },
+      { property: "og:title", content: "Settings — Personal Inkwell" },
       { property: "og:description", content: "Default ping interval, archived projects, and the locked e-ink paper theme." },
     ],
   }),

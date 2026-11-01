@@ -45,7 +45,7 @@ export function PageHeader({
   return (
     <header className="sticky top-0 z-20 flex min-h-[52px] shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background pl-14 pr-3 md:px-5">
       <nav className="mono min-w-0 flex-1 items-center gap-1.5 truncate text-[12px] text-ink-muted md:flex">
-        <span>Personal Hub</span>
+        <span>Personal Inkwell</span>
         {crumbs.map((c, i) => (
           <span key={i} className="flex min-w-0 items-center gap-1.5">
             <span>/</span>
@@ -94,7 +94,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
         <span className="hairline flex h-6 w-6 items-center justify-center rounded-[3px] text-[10px] font-semibold">
           PH
         </span>
-        <span className="text-[13px] font-semibold">Personal Hub</span>
+        <span className="text-[13px] font-semibold">Personal Inkwell</span>
         <ChevronsUpDown size={13} className="ml-auto text-ink-muted" />
         <button
           onClick={toggleTheme}
@@ -221,7 +221,7 @@ function MobileNav({ onSearch, onClose }: { onSearch: () => void; onClose: () =>
     <div className="fixed inset-x-0 top-0 z-40 max-h-[100dvh] overflow-y-auto border-b border-border bg-paper md:hidden">
       <div className="flex h-12 items-center px-4">
         <span className="hairline flex h-6 w-6 items-center justify-center rounded-[3px] text-[10px] font-semibold">PH</span>
-        <span className="ml-2 text-[13px] font-semibold">Personal Hub</span>
+        <span className="ml-2 text-[13px] font-semibold">Personal Inkwell</span>
         <button
           onClick={toggleTheme}
           aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
@@ -546,7 +546,7 @@ function LoginScreen() {
             .finally(() => setPending(false));
         }}
       >
-        <div className="micro-label">Personal Hub / Private Workspace</div>
+        <div className="micro-label">Personal Inkwell / Private Workspace</div>
         <h1 className="mt-3 text-xl font-semibold">Sign in</h1>
         <p className="mono mt-2 text-[11px] text-ink-muted">Your session is protected by an encrypted server-side cookie.</p>
         <div className="mt-5 space-y-3">

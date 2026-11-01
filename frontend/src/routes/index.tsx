@@ -1,62 +1,425 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, Check, ChevronDown, CircleAlert, Command, Inbox, Menu, Plus } from "lucide-react";
-import { useState } from "react";
+import { ArrowUpRight, Check, CircleAlert, Inbox, Menu, Plus, X } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import "../landing.css";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Personal Hub — Your work, without the noise" },
+      { title: "Personal Inkwell — Your work, without the noise" },
       { name: "description", content: "A calm personal operating system for projects, tasks, schedules, and relationships." },
     ],
   }),
   component: LandingPage,
 });
 
-const capabilities = [
-  ["01", "Unified Dashboard", "See only what needs attention today.", "Needs Attention / Today / Progressive Disclosure"],
-  ["02", "Project Manager", "Break complex work into milestones, dependencies, and decisions.", "Milestones / Dependencies / Markdown"],
-  ["03", "Personal CRM", "Turn relationships into actionable workflows, not static records.", "Interactions / Linked Tasks / Ping System"],
+const NAV = [
+  ["Principle", "#principle"],
+  ["Workflow", "#workflow"],
+  ["System", "#system"],
+  ["Craft", "#craft"],
 ] as const;
 
-function LandingPage() {
-  const [openCapability, setOpenCapability] = useState(0);
-  const [capture, setCapture] = useState("");
-  const [captured, setCaptured] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+const TICKER = ["Projects", "Tasks", "Relationships", "Ideas", "Schedules", "Decisions", "Notes", "Rituals"];
+
+function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setShown(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShown(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, []);
 
   return (
-    <div className="landing-page overflow-hidden">
-      <header className="landing-nav">
-        <Link to="/" className="landing-wordmark"><span className="wordmark-mark">PH</span> Personal <em>Hub</em></Link>
-        <nav className="landing-links" aria-label="Primary navigation"><a href="#focus">Focus</a><a href="#workflow">Workflow</a><a href="#system">System</a><a href="#capabilities">Capabilities</a></nav>
-        <div className="landing-nav-actions"><span className="system-status"><i /> SYSTEM READY</span><Link to="/dashboard" className="landing-open">Open Hub <ArrowUpRight size={14} /></Link></div>
-        <button className="landing-menu" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen((open) => !open)}><Menu size={20} /></button>
+    <div ref={ref} className={`lp-reveal ${shown ? "is-in" : ""} ${className}`} style={{ "--d": `${delay}ms` } as CSSProperties}>
+      {children}
+    </div>
+  );
+}
+
+function Lines({ lines }: { lines: ReactNode[] }) {
+  return (
+    <>
+      {lines.map((line, i) => (
+        <span className="lp-line" key={i}>
+          <span style={{ "--i": i } as CSSProperties}>{line}</span>
+        </span>
+      ))}
+    </>
+  );
+}
+
+function Eyebrow({ n, children }: { n: string; children: ReactNode }) {
+  return (
+    <p className="lp-eyebrow">
+      <i /> {children} <span>/ {n}</span>
+    </p>
+  );
+}
+
+function LandingPage() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [capture, setCapture] = useState("");
+  const [captured, setCaptured] = useState<string[]>([]);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 24);
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(max > 0 ? window.scrollY / max : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const submitCapture = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = capture.trim();
+    if (!value) return;
+    setCaptured((items) => [value, ...items].slice(0, 3));
+    setCapture("");
+  };
+
+  return (
+    <div className="lp">
+      <div className="lp-progress" style={{ transform: `scaleX(${progress})` }} />
+      <div className="lp-grain" aria-hidden />
+
+      <header className={`lp-nav ${scrolled ? "is-scrolled" : ""}`}>
+        <Link to="/" className="lp-brand">
+          <span>
+            Personal <em>Inkwell</em>
+          </span>
+        </Link>
+        <nav className="lp-links" aria-label="Primary">
+          {NAV.map(([label, href]) => (
+            <a key={href} href={href}>
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div className="lp-nav-end">
+          <span className="lp-status">
+            <i /> Online
+          </span>
+          <Link to="/dashboard" className="lp-btn lp-btn-dark lp-btn-sm">
+            Open hub <ArrowUpRight size={14} />
+          </Link>
+        </div>
+        <button className="lp-burger" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen((o) => !o)}>
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </header>
-      {menuOpen ? <nav className="landing-mobile-menu" aria-label="Mobile navigation"><a href="#focus" onClick={() => setMenuOpen(false)}>Focus</a><a href="#workflow" onClick={() => setMenuOpen(false)}>Workflow</a><a href="#system" onClick={() => setMenuOpen(false)}>System</a><a href="#capabilities" onClick={() => setMenuOpen(false)}>Capabilities</a><Link to="/dashboard" onClick={() => setMenuOpen(false)}>Open Hub <ArrowUpRight size={14} /></Link></nav> : null}
+
+      {menuOpen ? (
+        <nav className="lp-mobile" aria-label="Mobile">
+          {NAV.map(([label, href]) => (
+            <a key={href} href={href} onClick={() => setMenuOpen(false)}>
+              {label}
+            </a>
+          ))}
+          <Link to="/dashboard" onClick={() => setMenuOpen(false)}>
+            Open hub <ArrowUpRight size={18} />
+          </Link>
+        </nav>
+      ) : null}
 
       <main>
-        <section className="landing-hero">
-          <div className="hero-copy"><p className="eyebrow">PERSONAL OPERATING SYSTEM <span>/ 01</span></p><h1>Your work,<br /><em>without the noise.</em></h1><p className="hero-intro">Projects, tasks, relationships, ideas, and schedules in one calm workspace. Designed to show you what needs attention, not everything that exists.</p><div className="hero-actions"><Link to="/dashboard" className="primary-action">Open Personal Hub <ArrowUpRight size={16} /></Link><a href="#focus" className="text-action">See how it works <span>↓</span></a></div></div>
-          <div className="hero-orbit" aria-label="Personal Hub interface preview"><div className="orbit-ring ring-one" /><div className="orbit-ring ring-two" /><div className="preview-window"><div className="preview-top"><span className="mini-logo">PH</span><span className="mono-label">TODAY / MON 14</span><span className="preview-dots">···</span></div><div className="preview-title"><span>Good morning, Harvlin.</span><span className="quiet-count">03 focus items</span></div><div className="preview-alert"><div><span className="status-red"><CircleAlert size={13} /> NEEDS ATTENTION</span><strong>2 items need a decision</strong></div><ArrowUpRight size={15} /></div><div className="preview-list"><div><span className="task-dot active" /><span>Build authentication flow</span><b>09:00</b></div><div><span className="task-dot" /><span>Physics assignment</span><b>13:30</b></div><div><span className="task-dot" /><span>Follow up with Alex</span><b>16:00</b></div></div><div className="preview-footer"><span><Inbox size={13} /> 3 in inbox</span><span><Check size={13} /> 4 clear</span></div></div><div className="orbit-note note-top"><span className="note-line" /> ONLY WHAT MATTERS NOW</div><div className="orbit-note note-bottom">BUILT FOR ONE <span>/</span> 2026</div></div>
-          <div className="hero-scroll">SCROLL TO EXPLORE <span>↓</span></div>
+        <section className="lp-hero">
+          <div className="lp-hero-copy">
+            <Eyebrow n="01">A personal operating system</Eyebrow>
+            <h1 className="lp-display">
+              <Lines lines={["Your work,", <em key="e">without the noise.</em>]} />
+            </h1>
+            <Reveal delay={500}>
+              <p className="lp-lede">
+                Projects, tasks, relationships and schedules in one quiet workspace — designed to show you what needs a decision, not everything that exists.
+              </p>
+              <div className="lp-actions">
+                <Link to="/dashboard" className="lp-btn lp-btn-dark">
+                  Open Personal Inkwell <ArrowUpRight size={16} />
+                </Link>
+                <a href="#principle" className="lp-btn lp-btn-ghost">
+                  See how it thinks
+                </a>
+              </div>
+            </Reveal>
+          </div>
+
+          <Reveal delay={300} className="lp-stage-wrap">
+            <div
+              className="lp-stage"
+              onMouseMove={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setTilt({ x: ((e.clientX - r.left) / r.width - 0.5) * 2, y: ((e.clientY - r.top) / r.height - 0.5) * 2 });
+              }}
+              onMouseLeave={() => setTilt({ x: 0, y: 0 })}
+            >
+              <div className="lp-ring r1" />
+              <div className="lp-ring r2" />
+              <div className="lp-window" style={{ transform: `perspective(1200px) rotateY(${tilt.x * 5}deg) rotateX(${tilt.y * -4}deg)` }}>
+                <div className="lp-win-top">
+                  <span className="lp-window-brand">PERSONAL INKWELL</span>
+                  <span className="lp-mono">Today · Mon 14</span>
+                  <span className="lp-dots">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                </div>
+                <div className="lp-win-greet">
+                  <span>Good morning, Harvlin.</span>
+                  <b className="lp-mono">03 focus</b>
+                </div>
+                <div className="lp-alert">
+                  <div>
+                    <span className="lp-red lp-mono">
+                      <CircleAlert size={12} /> Needs attention
+                    </span>
+                    <strong>2 items need a decision</strong>
+                  </div>
+                  <ArrowUpRight size={16} />
+                </div>
+                <ul className="lp-win-list">
+                  {(
+                    [
+                      ["Build authentication flow", "09:00", true],
+                      ["Physics assignment", "13:30", false],
+                      ["Follow up with Alex", "16:00", false],
+                    ] as const
+                  ).map(([t, time, active]) => (
+                    <li key={t}>
+                      <span className={`lp-dot ${active ? "on" : ""}`} />
+                      <span>{t}</span>
+                      <b className="lp-mono">{time}</b>
+                    </li>
+                  ))}
+                </ul>
+                <div className="lp-win-foot lp-mono">
+                  <span>
+                    <Inbox size={12} /> 3 in inbox
+                  </span>
+                  <span>
+                    <Check size={12} /> 4 clear
+                  </span>
+                </div>
+              </div>
+              <div className="lp-float f1 lp-mono" style={{ transform: `translate(${tilt.x * -10}px, ${tilt.y * -10}px)` }}>
+                <i /> Only what matters now
+              </div>
+              <div className="lp-float f2 lp-mono" style={{ transform: `translate(${tilt.x * 12}px, ${tilt.y * 12}px)` }}>
+                Built for one · 2026
+              </div>
+            </div>
+          </Reveal>
         </section>
 
-        <section id="focus" className="landing-section focus-section"><div className="section-intro"><p className="eyebrow">THE PRINCIPLE <span>/ 02</span></p><h2>A system that knows what deserves your attention.</h2><p>Most productivity tools show you everything. Personal Hub deliberately hides what does not require a decision right now.</p></div><div className="focus-comparison"><div className="comparison-panel dense"><div className="panel-label">TRADITIONAL PRODUCTIVITY <span>TOO MUCH SIGNAL</span></div><div className="noise-stack"><b>17 tasks</b><b>8 projects</b><b>12 reminders</b><b>6 contacts</b><b className="red-text">4 overdue items</b></div><div className="noise-lines">{Array.from({ length: 6 }).map((_, i) => <i key={i} style={{ width: `${45 + ((i * 13) % 48)}%` }} />)}</div></div><div className="comparison-panel calm"><div className="panel-label">PERSONAL HUB <span>JUST ENOUGH</span></div><div className="calm-number">02 <small>items need you</small></div><div className="calm-row"><span className="task-dot active" /> Configure OAuth callback <CircleAlert size={13} /></div><div className="calm-row"><span className="task-dot" /> Alex — project collaboration <span className="mono-label">PING</span></div><div className="calm-more">+ everything else, quietly held</div></div></div></section>
+        <div className="lp-ticker" aria-hidden>
+          <div className="lp-ticker-track">
+            {[...TICKER, ...TICKER, ...TICKER].map((t, i) => (
+              <span key={i}>
+                {t} <i>✦</i>
+              </span>
+            ))}
+          </div>
+        </div>
 
-        <section className="landing-section attention-section"><div className="section-intro"><p className="eyebrow">THE DAILY VIEW <span>/ 03</span></p><h2>First, handle what matters.</h2><p>Personal Hub is an operational system, not a database of tasks. It brings the next meaningful decisions forward.</p><Link to="/dashboard" className="underlined-link">Enter your workspace <ArrowUpRight size={15} /></Link></div><div className="attention-module"><div className="module-header"><span className="eyebrow">NEEDS ATTENTION</span><span className="mono-label">MON 14 / 2 ITEMS</span></div><div className="attention-item blocked"><div className="attention-icon"><CircleAlert size={16} /></div><div><span className="item-state">BLOCKED</span><h3>Implement OAuth callback</h3><p>blocked by <b>Configure Google credentials</b></p></div><ArrowUpRight size={16} /></div><div className="attention-item"><div className="attention-icon neutral"><Command size={16} /></div><div><span className="item-state">OVERDUE PING</span><h3>Alex — Project collaboration</h3><p>last contact <b>34 days ago</b></p></div><ArrowUpRight size={16} /></div><div className="today-heading"><span className="eyebrow">TODAY</span><span className="mono-label">3 TASKS</span></div><div className="today-task"><span className="task-check" /> Finish authentication flow <span className="mono-label">09:00</span></div><div className="today-task"><span className="task-check" /> Submit database assignment <span className="mono-label">13:30</span></div><div className="today-task"><span className="task-check" /> Review project architecture <span className="mono-label">16:00</span></div></div></section>
+        <section id="principle" className="lp-section">
+          <Reveal>
+            <Eyebrow n="02">The principle</Eyebrow>
+            <h2 className="lp-h2">
+              A system that knows what <em>deserves</em> your attention.
+            </h2>
+          </Reveal>
+          <div className="lp-compare">
+            <Reveal className="lp-panel lp-panel-noise">
+              <div className="lp-panel-label lp-mono">
+                Traditional tools <span>Too much signal</span>
+              </div>
+              <div className="lp-chips">
+                {["17 tasks", "8 projects", "12 reminders", "6 contacts", "4 overdue"].map((c, i) => (
+                  <b key={c} className={i === 4 ? "lp-red" : ""} style={{ "--r": `${(i % 3) - 1}deg` } as CSSProperties}>
+                    {c}
+                  </b>
+                ))}
+              </div>
+              <div className="lp-bars">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <i key={i} style={{ width: `${40 + ((i * 17) % 55)}%` }} />
+                ))}
+              </div>
+            </Reveal>
+            <Reveal delay={150} className="lp-panel lp-panel-calm">
+              <div className="lp-panel-label lp-mono">
+                Personal Inkwell <span>Just enough</span>
+              </div>
+              <div className="lp-big">
+                02<small>items need you</small>
+              </div>
+              <div className="lp-row">
+                <span className="lp-dot on" /> Configure OAuth callback <CircleAlert size={14} className="lp-red" />
+              </div>
+              <div className="lp-row">
+                <span className="lp-dot" /> Alex — project collaboration <em className="lp-mono">Ping</em>
+              </div>
+              <p className="lp-quiet">+ everything else, quietly held</p>
+            </Reveal>
+          </div>
+        </section>
 
-        <section id="workflow" className="landing-section workflow-section"><div className="workflow-copy"><p className="eyebrow">THE WORKFLOW <span>/ 04</span></p><h2>Capture first.<br /><em>Organize later.</em></h2><p>Ideas should not require paperwork. Put the thought somewhere safe, then give it shape when you have the context.</p><div className="workflow-steps"><span><b>01</b> CAPTURE</span><span><b>02</b> CLARIFY</span><span><b>03</b> MOVE FORWARD</span></div></div><div className="capture-module"><div className="module-header"><span className="eyebrow">INBOX / QUICK CAPTURE</span><Inbox size={17} /></div><label htmlFor="capture-input">What needs to leave your head?</label><div className="capture-input"><input id="capture-input" value={capture} onChange={(e) => { setCapture(e.target.value); setCaptured(false); }} placeholder="Type a thought, task, or idea..." onKeyDown={(e) => { if (e.key === "Enter" && capture.trim()) setCaptured(true); }} /><button aria-label="Capture idea" onClick={() => capture.trim() && setCaptured(true)}><ArrowUpRight size={17} /></button></div>{captured ? <div className="captured-message"><Check size={14} /> CAPTURED <span>→ INBOX</span></div> : <div className="capture-examples"><span>Build landing page</span><span>Ask Sarah about internship</span><span>Research PostgreSQL indexing</span></div>}<div className="capture-rule"><span>NO PROJECT REQUIRED</span><span>NO MILESTONE REQUIRED</span><span>JUST CAPTURE</span></div></div></section>
+        <section id="workflow" className="lp-section lp-split">
+          <Reveal>
+            <Eyebrow n="03">The workflow</Eyebrow>
+            <h2 className="lp-h2">
+              Capture first. <em>Organize later.</em>
+            </h2>
+            <p className="lp-body">Ideas shouldn't require paperwork. Put the thought somewhere safe, then give it shape when you have the context.</p>
+            <ol className="lp-steps">
+              {["Capture", "Clarify", "Move forward"].map((s, i) => (
+                <li key={s}>
+                  <b className="lp-mono">0{i + 1}</b> {s}
+                </li>
+              ))}
+            </ol>
+          </Reveal>
+          <Reveal delay={150}>
+            <form className="lp-card lp-capture" onSubmit={submitCapture}>
+              <div className="lp-card-head lp-mono">
+                <span>Inbox / Quick capture</span>
+                <Inbox size={15} />
+              </div>
+              <label htmlFor="capture-input">What needs to leave your head?</label>
+              <div className="lp-input">
+                <input id="capture-input" value={capture} onChange={(e) => setCapture(e.target.value)} placeholder="Call the landlord about the lease…" autoComplete="off" />
+                <button type="submit" aria-label="Capture">
+                  <Plus size={16} />
+                </button>
+              </div>
+              <ul className="lp-captured">
+                {captured.length === 0 ? <li className="empty">Nothing captured yet. Try it.</li> : null}
+                {captured.map((c, i) => (
+                  <li key={`${c}-${i}`}>
+                    <Check size={13} /> {c} <span className="lp-mono">Inbox</span>
+                  </li>
+                ))}
+              </ul>
+            </form>
+          </Reveal>
+        </section>
 
-        <section id="system" className="landing-section system-section"><div><p className="eyebrow">THE SYSTEM <span>/ 05</span></p><h2>Complex work,<br /><em>broken into decisions.</em></h2><p className="system-copy">A project can be an intricate software build or four direct tasks for a university assignment. Personal Hub adapts to the shape of the work.</p><Link to="/projects" className="underlined-link">Explore projects <ArrowUpRight size={15} /></Link></div><div className="project-diagram"><div className="diagram-card main-project"><div className="diagram-card-head"><span className="project-kicker">SOFTWARE PROJECT</span><span className="mono-label">04 MILESTONES</span></div><h3>Personal Hub</h3><div className="milestone-track"><span className="done">01 FOUNDATION</span><span className="current">02 CORE WORKFLOW</span><span>03 CRM</span><span>04 CALENDAR</span></div><div className="diagram-task"><span className="task-dot active" /> Implement email digest <b>BLOCKED</b></div></div><div className="diagram-card light-project"><span className="project-kicker">LIGHTWEIGHT PROJECT</span><h3>Computer Science Assignment</h3><div className="mini-task"><Check size={13} /> Research topic</div><div className="mini-task"><span className="task-dot active" /> Write report</div><div className="mini-task"><span className="task-dot" /> Submit assignment</div></div></div></section>
+        <section id="system" className="lp-section">
+          <Reveal>
+            <Eyebrow n="04">The system</Eyebrow>
+            <h2 className="lp-h2">
+              Complex work, <em>broken into decisions.</em>
+            </h2>
+          </Reveal>
+          <div className="lp-bento">
+            <Reveal className="lp-card lp-b-main">
+              <div className="lp-card-head lp-mono">
+                <span>Software project</span>
+                <span>04 milestones</span>
+              </div>
+              <h3>Personal Inkwell</h3>
+              <div className="lp-track">
+                {["Foundation", "Core workflow", "CRM", "Calendar"].map((m, i) => (
+                  <span key={m} className={i === 0 ? "done" : i === 1 ? "cur" : ""}>
+                    <b className="lp-mono">0{i + 1}</b>
+                    {m}
+                  </span>
+                ))}
+              </div>
+              <div className="lp-row">
+                <span className="lp-dot on" /> Implement email digest <em className="lp-mono lp-red">Blocked</em>
+              </div>
+            </Reveal>
+            <Reveal delay={100} className="lp-card">
+              <div className="lp-card-head lp-mono">
+                <span>Lightweight</span>
+              </div>
+              <h3>CS Assignment</h3>
+              <div className="lp-row"><Check size={14} /> Research topic</div>
+              <div className="lp-row"><span className="lp-dot on" /> Write report</div>
+              <div className="lp-row"><span className="lp-dot" /> Submit assignment</div>
+            </Reveal>
+            <Reveal delay={200} className="lp-card lp-b-dark">
+              <div className="lp-card-head lp-mono">
+                <span>Personal CRM</span>
+              </div>
+              <div className="lp-big">
+                34<small>days since you spoke to Alex</small>
+              </div>
+              <Link to="/contacts" className="lp-link">
+                Send a ping <ArrowUpRight size={14} />
+              </Link>
+            </Reveal>
+            <Reveal delay={100} className="lp-card lp-b-phone">
+              <div className="lp-card-head lp-mono">
+                <span>Pocket-sized</span>
+              </div>
+              <h3>Capture anywhere. Check priorities in seconds.</h3>
+            </Reveal>
+          </div>
+        </section>
 
-        <section id="capabilities" className="landing-section capabilities-section"><div className="capabilities-sticky"><p className="eyebrow">ONE WORKSPACE <span>/ 06</span></p><h2>Different kinds<br /><em>of work.</em></h2><p>Projects, schedules, ideas, and relationships connected without forcing them into one rigid workflow.</p><Link to="/dashboard" className="primary-action small-action">Explore the system <ArrowUpRight size={15} /></Link></div><div className="capability-list">{capabilities.map(([number, title, description, tags], index) => <div className={`capability ${openCapability === index ? "is-open" : ""}`} key={number}><button onClick={() => setOpenCapability(index)} aria-expanded={openCapability === index}><span className="cap-number">{number}</span><strong>{title}</strong><ChevronDown size={17} /></button>{openCapability === index ? <div className="capability-detail"><p>{description}</p><span>{tags}</span></div> : null}</div>)}</div></section>
+        <section id="craft" className="lp-craft">
+          <Reveal>
+            <Eyebrow n="05">Built for one</Eyebrow>
+            <h2 className="lp-h2 lp-center">
+              Private by design. <em>Simple by architecture.</em>
+            </h2>
+            <div className="lp-stack lp-mono">
+              {["Personal Inkwell", "TanStack Start", "Spring Boot", "PostgreSQL", "Docker"].map((s, i) => (
+                <span key={s}>
+                  {s}
+                  {i < 4 ? <i>→</i> : null}
+                </span>
+              ))}
+            </div>
+            <p className="lp-body lp-center">
+              A focused single-user architecture without multi-tenant complexity. Session-based authentication, automated backups, and environment-first configuration.
+            </p>
+          </Reveal>
+        </section>
 
-        <section className="landing-section mobile-section"><div><p className="eyebrow">BUILT FOR THE POCKET <span>/ 07</span></p><h2>Your workspace<br /><em>fits in your pocket.</em></h2><p>Capture a thought or check today&apos;s priorities without opening a laptop.</p></div><div className="phone"><div className="phone-speaker" /><div className="phone-screen"><div className="phone-top"><span>9:41</span><span>● ● ●</span></div><p className="eyebrow">DASHBOARD</p><h3>Good morning.</h3><div className="phone-focus"><span>NEEDS ATTENTION</span><b>2 items</b><small>Configure OAuth callback</small><small>Ping Alex Morgan</small></div><p className="eyebrow">TODAY</p><div className="phone-line" /><div className="phone-line short" /></div><div className="phone-nav"><span>⌂<small>Dashboard</small></span><span>□<small>Inbox</small></span><b><Plus size={19} /></b><span>◎<small>Contacts</small></span><span>•••<small>More</small></span></div></div></section>
-
-        <section className="trust-section"><div className="trust-inner"><p className="eyebrow">BUILT FOR ONE <span>/ 08</span></p><h2>Private by design.<br /><em>Simple by architecture.</em></h2><div className="architecture"><span>PERSONAL HUB</span><i>↓</i><span>TanStack Start</span><i>↓</i><span>Spring Boot</span><i>↓</i><span>PostgreSQL</span><i>↓</i><span>Docker</span></div><p className="trust-note">A focused single-user architecture without unnecessary multi-tenant complexity. Session-based authentication, automated backups, and environment-first configuration.</p></div></section>
+        <section className="lp-cta">
+          <Reveal>
+            <Eyebrow n="06">Make room</Eyebrow>
+            <h2 className="lp-display lp-cta-title">
+              Make space for <em>the work that matters.</em>
+            </h2>
+            <p className="lp-lede">Not more productivity. Less friction.</p>
+            <Link to="/dashboard" className="lp-btn lp-btn-light">
+              Open Personal Inkwell <ArrowUpRight size={16} />
+            </Link>
+          </Reveal>
+        </section>
       </main>
 
-      <footer className="landing-footer"><div className="footer-cta"><p className="eyebrow">MAKE ROOM <span>/ 09</span></p><h2>Make space for<br /><em>the work that matters.</em></h2><p>Not more productivity. Less friction.</p><Link to="/dashboard" className="primary-action">Open Personal Hub <ArrowUpRight size={16} /></Link></div><div className="footer-bottom"><span className="landing-wordmark"><span className="wordmark-mark">PH</span> Personal <em>Hub</em></span><span className="mono-label">PERSONAL HUB / 2026</span><span className="mono-label">TANSTACK START × SPRING BOOT × POSTGRESQL</span></div></footer>
+      <footer className="lp-footer lp-mono">
+        <span>Personal Inkwell © 2026</span>
+        <span>TanStack Start × Spring Boot × PostgreSQL</span>
+      </footer>
     </div>
   );
 }

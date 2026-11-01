@@ -14,7 +14,7 @@
     <artifactId>personal-hub-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>personal-hub-backend</name>
-    <description>Personal Hub API</description>
+    <description>Personal Inkwell API</description>
 
     <properties>
         <java.version>21</java.version>

@@ -19,9 +19,9 @@ import { TODAY, ageInDays, useStore, type Task, type Status } from "@/lib/store"
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({
     meta: [
-      { title: "Project — Personal Hub" },
+      { title: "Project — Personal Inkwell" },
       { name: "description", content: "Milestones, tasks, resources, and attachments for a single project." },
-      { property: "og:title", content: "Project — Personal Hub" },
+      { property: "og:title", content: "Project — Personal Inkwell" },
       { property: "og:description", content: "Milestones, tasks, resources, and attachments for a single project." },
     ],
   }),

@@ -7,9 +7,9 @@ import { useStore } from "@/lib/store";
 export const Route = createFileRoute("/resources")({
   head: () => ({
     meta: [
-      { title: "Resources — Personal Hub" },
+      { title: "Resources — Personal Inkwell" },
       { name: "description", content: "Every repo, design file, and API doc linked across all projects in one table." },
-      { property: "og:title", content: "Resources — Personal Hub" },
+      { property: "og:title", content: "Resources — Personal Inkwell" },
       { property: "og:description", content: "Every repo, design file, and API doc linked across all projects in one table." },
     ],
   }),

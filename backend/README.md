@@ -1,6 +1,6 @@
-# Personal Hub API
+# Personal Inkwell API
 
-Spring Boot REST API for the Personal Hub frontend. The service uses PostgreSQL, JPA/Hibernate, environment-based configuration, and a single-user API key guard suitable for a private hosted deployment.
+Spring Boot REST API for the Personal Inkwell frontend. The service uses PostgreSQL, JPA/Hibernate, environment-based configuration, and a single-user API key guard suitable for a private hosted deployment.
 
 ## Local development
 

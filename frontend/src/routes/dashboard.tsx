@@ -18,12 +18,12 @@ import {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Personal Hub" },
+      { title: "Dashboard — Personal Inkwell" },
       {
         name: "description",
         content: "Today's tasks, contact pings due, and 14-day project velocity in one e-ink control center.",
       },
-      { property: "og:title", content: "Dashboard — Personal Hub" },
+      { property: "og:title", content: "Dashboard — Personal Inkwell" },
       {
         property: "og:description",
         content: "Today's tasks, contact pings due, and 14-day project velocity in one e-ink control center.",

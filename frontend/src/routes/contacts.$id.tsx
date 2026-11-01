@@ -8,9 +8,9 @@ import { initials, pingInfo, useStore } from "@/lib/store";
 export const Route = createFileRoute("/contacts/$id")({
   head: () => ({
     meta: [
-      { title: "Contact — Personal Hub" },
+      { title: "Contact — Personal Inkwell" },
       { name: "description", content: "Preference notes, interaction log, tags, and ping status for one contact." },
-      { property: "og:title", content: "Contact — Personal Hub" },
+      { property: "og:title", content: "Contact — Personal Inkwell" },
       { property: "og:description", content: "Preference notes, interaction log, tags, and ping status for one contact." },
     ],
   }),

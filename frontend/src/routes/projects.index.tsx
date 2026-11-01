@@ -8,9 +8,9 @@ import { ageInDays, statusLabel, useStore } from "@/lib/store";
 export const Route = createFileRoute("/projects/")({
   head: () => ({
     meta: [
-      { title: "Projects — Personal Hub" },
+      { title: "Projects — Personal Inkwell" },
       { name: "description", content: "All active and archived projects with milestone progress at a glance." },
-      { property: "og:title", content: "Projects — Personal Hub" },
+      { property: "og:title", content: "Projects — Personal Inkwell" },
       { property: "og:description", content: "All active and archived projects with milestone progress at a glance." },
     ],
   }),

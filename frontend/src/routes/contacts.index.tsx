@@ -8,9 +8,9 @@ import { pingInfo, useStore } from "@/lib/store";
 export const Route = createFileRoute("/contacts/")({
   head: () => ({
     meta: [
-      { title: "Contacts — Personal Hub" },
+      { title: "Contacts — Personal Inkwell" },
       { name: "description", content: "A personal CRM list with origin context, tags, and overdue ping tracking." },
-      { property: "og:title", content: "Contacts — Personal Hub" },
+      { property: "og:title", content: "Contacts — Personal Inkwell" },
       { property: "og:description", content: "A personal CRM list with origin context, tags, and overdue ping tracking." },
     ],
   }),

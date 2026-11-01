@@ -21,7 +21,7 @@ function NotFoundComponent() {
         <h1 className="mono text-6xl font-semibold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mono mt-2 text-[12px] text-ink-muted">
-          This route doesn't exist in Personal Hub.
+          This route doesn't exist in Personal Inkwell.
         </p>
         <div className="mt-6">
           <Link
@@ -76,11 +76,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Personal Hub — Projects & Contacts" },
+      { title: "Personal Inkwell — Projects & Contacts" },
       {
         name: "description",
         content:
-          "Personal Hub is a monochrome e-ink project manager and personal CRM for tasks, milestones, and contact pings.",
+          "Personal Inkwell is a monochrome e-ink project manager and personal CRM for tasks, milestones, and contact pings.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -91,7 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],

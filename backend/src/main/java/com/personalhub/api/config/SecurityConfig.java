@@ -21,7 +21,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
- * Security configuration for the single-user Personal Hub.
+ * Security configuration for the single-user Personal Inkwell.
  *
  * Auth model:
  *  - Single user; credentials are set via PERSONAL_HUB_USERNAME and
